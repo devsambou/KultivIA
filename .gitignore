@@ -1,6 +1,5 @@
 # Secrets — ne jamais committer
-.env (contient les clés Supabase et Firebase)
-
+.env
 # Flutter / Dart
 .dart_tool/
 .flutter-plugins
@@ -8,7 +7,7 @@
 .pub-cache/
 .pub/
 build/
-*.iml
+*.imls
 .idea/
 
 # Firebase
