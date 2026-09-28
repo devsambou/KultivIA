@@ -1,9 +1,10 @@
+// État global de l'app. Issue GitHub : #TODO
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/diagnosis.dart';
-import '../models/user_profile.dart';
+import '../../models/diagnosis.dart';
+import '../../models/user_profile.dart';
 import 'user_settings.dart';
-import 'diagnosis_history.dart';
+import '../data/diagnosis_history.dart';
 
 /// État global de l'app : délègue à [UserSettings] et [DiagnosisHistory]
 /// pour éviter les rebuilds en cascade.
@@ -17,45 +18,37 @@ class AppState extends ChangeNotifier {
     required this.history,
   });
 
-  // --- Delegation vers UserSettings ---
-
   String get languageCode => settings.languageCode;
   bool get voiceReplies => settings.voiceReplies;
 
-  void setLanguage(String code) => settings.setLanguage(code);
-  void setVoiceReplies(bool on) => settings.setVoiceReplies(on);
-
-  // --- Profil utilisateur ---
-
-  void setProfile(UserProfile p) {
-    profile = p;
-    settings.applyFromProfile(p);
-    notifyListeners();
+  void setLanguage(String code) {
+    throw UnimplementedError();
   }
 
-  // --- Delegation vers DiagnosisHistory ---
+  void setVoiceReplies(bool on) {
+    throw UnimplementedError();
+  }
+
+  void setProfile(UserProfile p) {
+    throw UnimplementedError();
+  }
 
   List<Diagnosis> get historyList => history.history;
 
-  void addDiagnosis(Diagnosis d) => history.addDiagnosis(d);
+  void addDiagnosis(Diagnosis d) {
+    throw UnimplementedError();
+  }
 
-  /// Synchronise l'historique avec le repository (appelé au login).
-  void bindHistory() => history.bindHistory();
+  void bindHistory() {
+    throw UnimplementedError();
+  }
 
-  /// À appeler à la déconnexion.
-  Future<void> clear() async {
-    history.clear();
-    profile = null;
-    settings
-      ..setLanguage('fr')
-      ..setVoiceReplies(false);
-    notifyListeners();
+  Future<void> clear() {
+    throw UnimplementedError();
   }
 
   @override
   void dispose() {
-    settings.dispose();
-    history.dispose();
-    super.dispose();
+    throw UnimplementedError();
   }
 }

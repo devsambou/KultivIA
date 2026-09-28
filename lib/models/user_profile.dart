@@ -80,4 +80,8 @@ class UserProfile {
       completed: m['profileCompleted'] == true,
     );
   }
+
+  // Aliases for Supabase compatibility
+  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile.fromMap(json);
+  Map<String, dynamic> toJson() => toMap();
 }

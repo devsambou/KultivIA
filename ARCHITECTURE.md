@@ -10,8 +10,7 @@ KultivIA est une application mobile Flutter qui aide les petits agriculteurs à 
 lib/
 ├── core/                    # Cœur de l'application
 │   ├── constants/           # Constantes globales
-│   │   ├── app_constants.dart
-│   │   └── api_constants.dart
+│   │   └── app_constants.dart
 │   ├── config/              # Configuration de l'app
 │   │   └── app_config.dart
 │   ├── errors/              # Exceptions personnalisées
@@ -57,14 +56,17 @@ lib/
 │   │   ├── step_exploitation.dart
 │   │   ├── step_identity.dart
 │   │   └── step_preferences.dart
-│   ├── gate_screen.dart     # Écran de démarrage
-│   ├── history_screen.dart  #历史 des diagnostics
-│   ├── home_ai_screen.dart  # Écran principal
-│   └── setup_screen.dart    # Écran de setup
+│   ├── gate/                # Écran de démarrage
+│   │   └── gate_screen.dart
+│   ├── history/             # Historique des diagnostics
+│   │   └── history_screen.dart
+│   ├── home_ai/             # Écran principal IA
+│   │   └── home_ai_screen.dart
+│   └── setup/               # Écran de setup
+│       └── setup_screen.dart
 ├── services/                # Services métier
 │   ├── auth/                # Firebase Auth
-│   │   ├── firebase_service.dart
-│   │   └── mock_auth_service.dart
+│   │   └── firebase_service.dart
 │   ├── ai/                  # RodiumAI (vision, chat, TTS, STT)
 │   │   ├── avatar_intents.dart
 │   │   └── rodium_ai_service.dart

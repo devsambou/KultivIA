@@ -53,6 +53,22 @@ class Diagnosis {
         'confidence': confidence,
         'advice': advice,
       };
+
+  // Aliases for Supabase compatibility
+  factory Diagnosis.fromJson(Map<String, dynamic> json) {
+    return Diagnosis(
+      id: json['id'] as String,
+      date: DateTime.parse(json['date'] as String),
+      imagePath: json['imagePath'] as String?,
+      inputText: json['inputText'] as String,
+      disease: json['disease'] as String,
+      confidence: (json['confidence'] as num).toDouble(),
+      advice: json['advice'] as String,
+      rawAiResponse: json['rawAiResponse'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => toMap();
 }
 
 /// Un message dans la conversation avec l'avatar IA.

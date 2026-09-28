@@ -1,5 +1,5 @@
 # Secrets — ne jamais committer
-.env
+.env (contient les clés Supabase et Firebase)
 
 # Flutter / Dart
 .dart_tool/
