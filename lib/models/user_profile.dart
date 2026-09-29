@@ -2,6 +2,7 @@
 class UserProfile {
   const UserProfile({
     required this.displayName,
+    this.photoUrl,
     this.role = 'farmer',
     this.locality = '',
     this.crops = const [],
@@ -18,6 +19,7 @@ class UserProfile {
   };
 
   final String displayName;
+  final String? photoUrl;
   final String role;
   final String locality;
   final List<String> crops;
@@ -37,6 +39,7 @@ class UserProfile {
 
   UserProfile copyWith({
     String? displayName,
+    String? photoUrl,
     String? role,
     String? locality,
     List<String>? crops,
@@ -47,6 +50,7 @@ class UserProfile {
   }) {
     return UserProfile(
       displayName: displayName ?? this.displayName,
+      photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       locality: locality ?? this.locality,
       crops: crops ?? this.crops,
@@ -59,6 +63,7 @@ class UserProfile {
 
   Map<String, dynamic> toMap() => {
         'displayName': displayName,
+        'photoUrl': photoUrl,
         'role': role,
         'locality': locality,
         'crops': crops,
@@ -71,6 +76,7 @@ class UserProfile {
   factory UserProfile.fromMap(Map<String, dynamic> m) {
     return UserProfile(
       displayName: (m['displayName'] as String?) ?? '',
+      photoUrl: m['photoUrl'] as String?,
       role: (m['role'] as String?) ?? 'farmer',
       locality: (m['locality'] as String?) ?? '',
       crops: List<String>.from((m['crops'] as List?) ?? const []),
