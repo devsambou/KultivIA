@@ -45,13 +45,15 @@ class VoiceService {
   static final VoiceService _instance = VoiceService._();
 
   /// Langues servies par RodiumAI plutôt que par le moteur du téléphone.
-  static const cloudLanguages = {'wo'};
+  static const cloudLanguages = {'wo', 'ln'};
 
   /// Phrase d'accueil dans chaque langue.
   static const greetings = <String, String>{
     'fr': 'Bonjour, je suis Kultivia. Je vous aide à soigner vos cultures.',
     'en': "Hello, I'm Kultivia. I help you take care of your crops.",
     'wo': 'Nanga def ! Maa ngi tudd Kultivia. Dinaa la dimbali ci sa toolu.',
+    'ln':
+        'Mbote ! Kombo na ngai ezali Kultivia. Nakosalisa yo kobatela milona na yo.',
   };
 
   final SpeechToText _stt = SpeechToText();
