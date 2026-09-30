@@ -25,6 +25,8 @@
  */
 
 const functions = require('firebase-functions');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 const { assessRisks, alertMessage } = require('./weather_rules');
@@ -56,9 +58,9 @@ function requireAuth(context) {
   return apiKey;
 }
 
-exports.aiSpeech = functions
-  .runWith({ secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60 })
-  .https.onCall(async (data, context) => {
+exports.aiSpeech = functions.https.onCall(
+  { secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60 },
+  async (data, context) => {
     const apiKey = requireAuth(context);
 
     const text = String((data && data.text) || '').trim();
@@ -92,7 +94,8 @@ exports.aiSpeech = functions
 
     const audio = await response.buffer();
     return { audio: audio.toString('base64'), mime: 'audio/mpeg' };
-  });
+  },
+);
 
 const AUDIO_EXTENSIONS = {
   'audio/mp4': 'm4a',
@@ -103,9 +106,9 @@ const AUDIO_EXTENSIONS = {
   'audio/webm': 'webm',
 };
 
-exports.aiTranscribe = functions
-  .runWith({ secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60, memory: '512MB' })
-  .https.onCall(async (data, context) => {
+exports.aiTranscribe = functions.https.onCall(
+  { secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60, memory: '512MB' },
+  async (data, context) => {
     const apiKey = requireAuth(context);
 
     const audioB64 = String((data && data.audio) || '');
@@ -146,7 +149,8 @@ exports.aiTranscribe = functions
 
     const json = await response.json();
     return { text: String(json.text || '').trim() };
-  });
+  },
+);
 
 // Open-Meteo : gratuit, sans clé. La localité saisie au paramétrage est
 // convertie en coordonnées (Sénégal d'abord, puis monde entier).
@@ -172,11 +176,14 @@ async function fetchDailyForecast(lat, lng) {
   return (await res.json()).daily;
 }
 
-exports.dailyWeatherRisk = functions
-  .runWith({ timeoutSeconds: 300, memory: '256MB' })
-  .pubsub.schedule('every day 06:00')
-  .timeZone('Africa/Dakar')
-  .onRun(async () => {
+exports.dailyWeatherRisk = onSchedule(
+    {
+      schedule: 'every day 06:00',
+      timeZone: 'Africa/Dakar',
+      timeoutSeconds: 300,
+      memory: '256MB',
+    },
+    async () => {
     const db = admin.firestore();
     const snap = await db.collection('users').where('notificationsEnabled', '==', true).get();
 
@@ -227,13 +234,14 @@ exports.dailyWeatherRisk = functions
         console.error(`Alerte météo impossible pour ${name} : ${e.message}`);
       }
     }
-    console.log(`Alertes météo envoyées : ${sent}`);
-  });
+      console.log(`Alertes météo envoyées : ${sent}`);
+    },
+  );
 
-exports.notifyNewReport = functions.firestore
-  .document('signalements/{postId}')
-  .onCreate(async (snap) => {
-    const report = snap.data() || {};
+exports.notifyNewReport = onDocumentCreated(
+  { document: 'signalements/{postId}' },
+  async (event) => {
+    const report = event.data?.data() || {};
     const disease = String(report.disease || 'une maladie').slice(0, 80);
     await admin.messaging().send({
       topic: ALERTS_TOPIC,
@@ -241,6 +249,7 @@ exports.notifyNewReport = functions.firestore
         title: 'Nouveau signalement',
         body: `Une maladie a été signalée par la communauté : ${disease}.`,
       },
-      data: { type: 'community_report', postId: snap.id },
+      data: { type: 'community_report', postId: event.params.postId },
     });
-  });
+  },
+);

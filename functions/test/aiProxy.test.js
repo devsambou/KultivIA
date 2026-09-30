@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  aiProxy,
+  handleAiProxy,
 } = require('../src/aiProxy');
 
 const ORIGINAL_ENV = {
@@ -35,7 +35,7 @@ test.afterEach(() => {
 
 test('aiProxy refuse un utilisateur non connecté', async () => {
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -53,7 +53,7 @@ test('aiProxy refuse si la clé API nest pas configurée', async () => {
   process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -71,7 +71,7 @@ test('aiProxy refuse un tableau de messages vide', async () => {
   process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [],
       },
@@ -94,7 +94,7 @@ test('aiProxy refuse plus de 20 messages', async () => {
   }));
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages,
       },
@@ -131,7 +131,7 @@ test('aiProxy accepte exactement 20 messages', async () => {
       content: `Message ${i}`,
     }));
 
-    const result = await aiProxy(
+    const result = await handleAiProxy(
       {
         messages,
       },
@@ -149,7 +149,7 @@ test('aiProxy refuse une température hors limites', async () => {
   process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
         temperature: 1.5,
@@ -168,7 +168,7 @@ test('aiProxy refuse maxTokens hors limites', async () => {
   process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
         maxTokens: 900,
@@ -189,7 +189,7 @@ test('aiProxy refuse une image trop volumineuse', async () => {
   const largeBase64 = 'A'.repeat(6 * 1024 * 1024); // 6 Mo en base64
 
   await assert.rejects(
-    aiProxy(
+    handleAiProxy(
       {
         messages: [
           {
@@ -235,7 +235,7 @@ test('aiProxy accepte une image de taille valide', async () => {
   try {
     const validBase64 = 'A'.repeat(1024); // 1 Ko
 
-    const result = await aiProxy(
+    const result = await handleAiProxy(
       {
         messages: [
           {
@@ -287,7 +287,7 @@ test('aiProxy utilise RODIUMAI_BASE_URL', async () => {
   };
 
   try {
-    await aiProxy(
+    await handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -324,7 +324,7 @@ test('aiProxy utilise RODIUMAI_CHAT_MODEL', async () => {
   };
 
   try {
-    await aiProxy(
+    await handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -360,7 +360,7 @@ test('aiProxy utilise le modèle par défaut si non configuré', async () => {
   };
 
   try {
-    await aiProxy(
+    await handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -390,7 +390,7 @@ test('aiProxy transforme une erreur fournisseur en internal', async () => {
 
   try {
     await assert.rejects(
-      aiProxy(
+      handleAiProxy(
         {
           messages: [{ role: 'user', content: 'Bonjour' }],
         },
@@ -429,7 +429,7 @@ test('aiProxy renvoie le contenu de la réponse', async () => {
   };
 
   try {
-    const result = await aiProxy(
+    const result = await handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
       },
@@ -465,7 +465,7 @@ test('aiProxy inclut le language dans la requête', async () => {
   };
 
   try {
-    await aiProxy(
+    await handleAiProxy(
       {
         messages: [{ role: 'user', content: 'Bonjour' }],
         language: 'wo',
@@ -505,7 +505,7 @@ test('aiProxy ne journalise jamais le contenu des messages', async () => {
   };
 
   try {
-    await aiProxy(
+    await handleAiProxy(
       {
         messages: [
           { role: 'user', content: 'Message secret' },
