@@ -32,7 +32,6 @@ const { assessRisks, alertMessage } = require('./weather_rules');
 admin.initializeApp();
 
 const RODIUMAI_BASE = 'https://api.rodiumai.io/v1';
-const RODIUMAI_URL = `${RODIUMAI_BASE}/chat/completions`;
 const GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const ALERT_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // pas plus d'une alerte météo tous les 3 jours
@@ -43,48 +42,8 @@ const PROMPT_ONLY_LANGUAGES = new Set(['wo']);
 const MAX_AUDIO_BASE64_CHARS = 6000000; // ~4,5 Mo d'audio
 const ALERTS_TOPIC = 'alerts';
 
-exports.aiProxy = functions
-  .runWith({ secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60 })
-  .https.onCall(async (data, context) => {
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', 'Connexion requise.');
-    }
-
-    const apiKey = process.env.RODIUMAI_API_KEY;
-    if (!apiKey) {
-      throw new functions.https.HttpsError('failed-precondition', 'Clé RodiumAI non configurée côté serveur.');
-    }
-
-    const { messages, temperature = 0.3, maxTokens = 500, language } = data || {};
-    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 30) {
-      throw new functions.https.HttpsError('invalid-argument', 'Le champ "messages" est invalide.');
-    }
-
-    const response = await fetch(RODIUMAI_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'auto',
-        messages,
-        temperature: Math.min(Math.max(Number(temperature) || 0.3, 0), 1),
-        // Plafond côté serveur : évite qu'un client détourné fasse exploser la facture.
-        max_tokens: Math.min(Number(maxTokens) || 500, 800),
-        ...(language ? { language: String(language).slice(0, 8) } : {}),
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error(`RodiumAI ${response.status}: ${errText}`);
-      throw new functions.https.HttpsError('internal', `Erreur du service IA (${response.status}).`);
-    }
-
-    const json = await response.json();
-    return { content: json.choices?.[0]?.message?.content ?? '' };
-  });
+// Ré-exports des Cloud Functions (chaque fonction a son propre fichier dans src/)
+exports.aiProxy = require('./src/aiProxy').aiProxy;
 
 function requireAuth(context) {
   if (!context.auth) {
