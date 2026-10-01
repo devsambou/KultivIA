@@ -1,4 +1,12 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionId": "signalements",
+      "fields": [
+        { "fieldPath": "createdAt", "order": "descending" }
+      ],
+      "queryScope": "collection"
+    }
+  ],
   "fieldOverrides": []
 }

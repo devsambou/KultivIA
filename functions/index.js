@@ -26,7 +26,7 @@
 
 const functions = require('firebase-functions');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
+
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 const { assessRisks, alertMessage } = require('./weather_rules');
@@ -46,6 +46,7 @@ const ALERTS_TOPIC = 'alerts';
 
 // Ré-exports des Cloud Functions (chaque fonction a son propre fichier dans src/)
 exports.aiProxy = require('./src/aiProxy').aiProxy;
+exports.notifyNewReport = require('./src/notifyReport').notifyReport;
 
 function requireAuth(context) {
   if (!context.auth) {
@@ -237,19 +238,3 @@ exports.dailyWeatherRisk = onSchedule(
       console.log(`Alertes météo envoyées : ${sent}`);
     },
   );
-
-exports.notifyNewReport = onDocumentCreated(
-  { document: 'signalements/{postId}' },
-  async (event) => {
-    const report = event.data?.data() || {};
-    const disease = String(report.disease || 'une maladie').slice(0, 80);
-    await admin.messaging().send({
-      topic: ALERTS_TOPIC,
-      notification: {
-        title: 'Nouveau signalement',
-        body: `Une maladie a été signalée par la communauté : ${disease}.`,
-      },
-      data: { type: 'community_report', postId: event.params.postId },
-    });
-  },
-);
