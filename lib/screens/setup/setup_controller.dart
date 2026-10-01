@@ -129,12 +129,12 @@ class SetupController extends ChangeNotifier {
         Navigator.of(context).pop();
       } else {
         _appState.bindHistory();
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => route.settings.name != '/gate');
       }
     } catch (e) {
       debugPrint('Enregistrement du profil impossible : $e');
       if (context.mounted) {
-        _toast(context, "Impossible d'enregistrer votre profil. Vérifiez votre connexion et réessayez.");
+        _toast(context, "Impossible d'enregistrer votre profil : $e");
       }
     } finally {
       if (context.mounted) {
