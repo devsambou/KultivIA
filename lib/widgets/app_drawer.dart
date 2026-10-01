@@ -34,7 +34,6 @@ class AppDrawer extends StatelessWidget {
     final locality = profile?.locality ?? '';
     final initial = name.isEmpty ? '?' : name.substring(0, 1).toUpperCase();
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final mq = MediaQuery.of(context);
 
     final String? photo = (profilePhoto != null && profilePhoto.isNotEmpty)
@@ -124,17 +123,6 @@ class AppDrawer extends StatelessWidget {
                 _item(context, Icons.storefront_outlined, 'Marketplace',
                     '/marketplace'),
                 const Divider(),
-                ListTile(
-                  leading: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
-                  title: const Text('Mode sombre / clair'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // TODO: implémenter le toggle thème
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Toggle thème à implémenter')),
-                    );
-                  },
-                ),
                 _item(context, Icons.settings, 'Paramètres', '/settings'),
               ],
             ),

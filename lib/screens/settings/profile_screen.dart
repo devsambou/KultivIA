@@ -26,6 +26,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _uploadingPhoto = false;
   final _nameController = TextEditingController();
   final _localityController = TextEditingController();
+  final _phoneController = TextEditingController();
+  String _selectedCountryCode = '+221';
   File? _pickedImage;
 
   void _toast(String msg) =>
@@ -44,6 +46,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (profile != null) {
       _nameController.text = profile.displayName;
       _localityController.text = profile.locality;
+      _phoneController.text = profile.phoneNumber;
+      _selectedCountryCode = profile.phoneCountryCode;
       setState(() {});
     }
   }
@@ -97,6 +101,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updated = profile.copyWith(
         displayName: _nameController.text.trim(),
         locality: _localityController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        phoneCountryCode: _selectedCountryCode,
       );
       await fb.saveProfile(updated);
       app.setProfile(updated);
@@ -258,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Ville + GPS
+          // Ville / Région
           Text('Ville / Région', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Row(
@@ -285,6 +291,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       )
                     : const Icon(Icons.my_location),
                 tooltip: 'Détecter ma ville',
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Téléphone
+          Text('Téléphone', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Indicatif pays
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedCountryCode,
+                    items: UserProfile.countryCodes.entries.map((e) {
+                      return DropdownMenuItem<String>(
+                        value: e.key,
+                        child: Text('${e.key} ${e.value}'),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null) setState(() => _selectedCountryCode = v);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Numéro
+              Expanded(
+                child: TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Numéro de téléphone',
+                    hintText: 'Ex. 77 123 45 67',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
               ),
             ],
           ),

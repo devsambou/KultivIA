@@ -48,6 +48,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Langues supportées pour l'interface (seulement FR/EN)
+  static const _uiLanguages = {'fr': 'Français', 'en': 'English'};
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
@@ -58,121 +61,133 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(KSpace.lg),
         children: [
-          // Langue de l'interface
-          Text('Langue de l\'application', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          for (final e in UserSettings.supportedLanguages.entries)
-            KCard(
-              child: RadioListTile<String>(
-                title: Text(e.value),
-                secondary: IconButton(
-                  icon: const Icon(Icons.volume_up_outlined),
-                  tooltip: 'Écouter',
-                  onPressed: () => VoiceService().speak(
-                    VoiceService.greetings[e.key] ?? '',
-                    languageCode: e.key,
+          // Langues (pliable)
+          ExpansionTile(
+            leading: const Icon(Icons.language_outlined),
+            title: const Text('Langues'),
+            initiallyExpanded: true,
+            children: [
+              // Langue de l'application (FR/EN seulement)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('Langue de l\'application', style: Theme.of(context).textTheme.titleSmall),
+              ),
+              for (final e in _uiLanguages.entries)
+                KCard(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: RadioListTile<String>(
+                    title: Text(e.value),
+                    value: e.key,
+                    groupValue: app.languageCode,
+                    onChanged: (v) {
+                      if (v != null) {
+                        app.setLanguage(v);
+                        if (profile != null) {
+                          final updated = profile.copyWith(languageCode: v);
+                          context.read<FirebaseService>().saveProfile(updated);
+                        }
+                      }
+                    },
                   ),
                 ),
-                value: e.key,
-                groupValue: app.languageCode,
-                onChanged: (v) {
-                  if (v != null) {
-                    app.setLanguage(v);
-                    if (profile != null) {
-                      final updated = profile.copyWith(languageCode: v);
-                      context.read<FirebaseService>().saveProfile(updated);
-                    }
-                  }
-                },
-              ),
-            ),
-          const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-          // Langue de discussion avec l'IA
-          Text('Langue de l\'assistant IA', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          for (final e in UserSettings.supportedLanguages.entries)
-            KCard(
-              child: RadioListTile<String>(
-                title: Text(e.value),
-                secondary: IconButton(
-                  icon: const Icon(Icons.volume_up_outlined),
-                  tooltip: 'Écouter',
-                  onPressed: () => VoiceService().speak(
-                    VoiceService.greetings[e.key] ?? '',
-                    languageCode: e.key,
+              // Langue de l'assistant IA (toutes les langues)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text('Langue de l\'assistant IA', style: Theme.of(context).textTheme.titleSmall),
+              ),
+              for (final e in UserSettings.supportedLanguages.entries)
+                KCard(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: RadioListTile<String>(
+                    title: Text(e.value),
+                    secondary: IconButton(
+                      icon: const Icon(Icons.volume_up_outlined),
+                      tooltip: 'Écouter',
+                      onPressed: () => VoiceService().speak(
+                        VoiceService.greetings[e.key] ?? '',
+                        languageCode: e.key,
+                      ),
+                    ),
+                    value: e.key,
+                    groupValue: app.aiLanguageCode,
+                    onChanged: (v) {
+                      if (v != null) {
+                        app.setAiLanguage(v);
+                        if (profile != null) {
+                          final updated = profile.copyWith(aiLanguageCode: v);
+                          context.read<FirebaseService>().saveProfile(updated);
+                        }
+                      }
+                    },
                   ),
                 ),
-                value: e.key,
-                groupValue: app.aiLanguageCode,
-                onChanged: (v) {
-                  if (v != null) {
-                    app.setAiLanguage(v);
-                    if (profile != null) {
-                      final updated = profile.copyWith(aiLanguageCode: v);
-                      context.read<FirebaseService>().saveProfile(updated);
-                    }
-                  }
-                },
-              ),
-            ),
-          const SizedBox(height: 24),
-
-          // Thème
-          Text('Apparence', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          KCard(
-            child: Column(
-              children: [
-                RadioListTile<ThemeMode>(
-                  title: const Text('Clair'),
-                  subtitle: const Text('Toujours utiliser le thème clair'),
-                  value: ThemeMode.light,
-                  groupValue: app.themeMode,
-                  onChanged: (v) {
-                    if (v != null) {
-                      app.setThemeMode(v);
-                      if (profile != null) {
-                        final updated = profile.copyWith(themeMode: v);
-                        context.read<FirebaseService>().saveProfile(updated);
-                      }
-                    }
-                  },
-                ),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Sombre'),
-                  subtitle: const Text('Toujours utiliser le thème sombre'),
-                  value: ThemeMode.dark,
-                  groupValue: app.themeMode,
-                  onChanged: (v) {
-                    if (v != null) {
-                      app.setThemeMode(v);
-                      if (profile != null) {
-                        final updated = profile.copyWith(themeMode: v);
-                        context.read<FirebaseService>().saveProfile(updated);
-                      }
-                    }
-                  },
-                ),
-                RadioListTile<ThemeMode>(
-                  title: const Text('Système'),
-                  subtitle: const Text('Suivre le réglage du téléphone'),
-                  value: ThemeMode.system,
-                  groupValue: app.themeMode,
-                  onChanged: (v) {
-                    if (v != null) {
-                      app.setThemeMode(v);
-                      if (profile != null) {
-                        final updated = profile.copyWith(themeMode: v);
-                        context.read<FirebaseService>().saveProfile(updated);
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+
+          // Apparence (pliable)
+          ExpansionTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Apparence'),
+            initiallyExpanded: true,
+            children: [
+              KCard(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: [
+                    RadioListTile<ThemeMode>(
+                      title: const Text('Clair'),
+                      subtitle: const Text('Toujours utiliser le thème clair'),
+                      value: ThemeMode.light,
+                      groupValue: app.themeMode,
+                      onChanged: (v) {
+                        if (v != null) {
+                          app.setThemeMode(v);
+                          if (profile != null) {
+                            final updated = profile.copyWith(themeMode: v);
+                            context.read<FirebaseService>().saveProfile(updated);
+                          }
+                        }
+                      },
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: const Text('Sombre'),
+                      subtitle: const Text('Toujours utiliser le thème sombre'),
+                      value: ThemeMode.dark,
+                      groupValue: app.themeMode,
+                      onChanged: (v) {
+                        if (v != null) {
+                          app.setThemeMode(v);
+                          if (profile != null) {
+                            final updated = profile.copyWith(themeMode: v);
+                            context.read<FirebaseService>().saveProfile(updated);
+                          }
+                        }
+                      },
+                    ),
+                    RadioListTile<ThemeMode>(
+                      title: const Text('Système'),
+                      subtitle: const Text('Suivre le réglage du téléphone'),
+                      value: ThemeMode.system,
+                      groupValue: app.themeMode,
+                      onChanged: (v) {
+                        if (v != null) {
+                          app.setThemeMode(v);
+                          if (profile != null) {
+                            final updated = profile.copyWith(themeMode: v);
+                            context.read<FirebaseService>().saveProfile(updated);
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
           // Notifications
           SwitchListTile(

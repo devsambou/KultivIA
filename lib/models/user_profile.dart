@@ -13,6 +13,8 @@ class UserProfile {
     this.notificationsEnabled = false,
     this.voiceReplies = false,
     this.themeMode = ThemeMode.system,
+    this.phoneNumber = '',
+    this.phoneCountryCode = '+221',
     this.completed = false,
   });
 
@@ -20,6 +22,29 @@ class UserProfile {
     'farmer': 'Agriculteur',
     'vendor': "Vendeur d'intrants",
     'advisor': 'Conseiller agricole',
+  };
+
+  // Indicateurs pays courants (Afrique de l'Ouest + France)
+  static const countryCodes = {
+    '+221': 'Sénégal',
+    '+225': 'Côte d\'Ivoire',
+    '+223': 'Mali',
+    '+224': 'Guinée',
+    '+226': 'Burkina Faso',
+    '+227': 'Niger',
+    '+228': 'Togo',
+    '+229': 'Bénin',
+    '+237': 'Cameroun',
+    '+241': 'Gabon',
+    '+242': 'Congo',
+    '+243': 'RDC',
+    '+257': 'Burundi',
+    '+250': 'Rwanda',
+    '+255': 'Tanzanie',
+    '+254': 'Kenya',
+    '+256': 'Ouganda',
+    '+33': 'France',
+    '+1': 'USA/Canada',
   };
 
   final String displayName;
@@ -34,6 +59,8 @@ class UserProfile {
   /// L'avatar lit ses réponses à voix haute (pour ceux qui lisent difficilement).
   final bool voiceReplies;
   final ThemeMode themeMode;
+  final String phoneNumber;
+  final String phoneCountryCode;
   final bool completed;
 
   String get roleLabel => roles[role] ?? roles['farmer']!;
@@ -42,6 +69,8 @@ class UserProfile {
     final parts = displayName.trim().split(RegExp(r'\s+'));
     return parts.isEmpty ? '' : parts.first;
   }
+
+  String get fullPhoneNumber => '$phoneCountryCode$phoneNumber';
 
   UserProfile copyWith({
     String? displayName,
@@ -54,6 +83,8 @@ class UserProfile {
     bool? notificationsEnabled,
     bool? voiceReplies,
     ThemeMode? themeMode,
+    String? phoneNumber,
+    String? phoneCountryCode,
     bool? completed,
   }) {
     return UserProfile(
@@ -67,6 +98,8 @@ class UserProfile {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       voiceReplies: voiceReplies ?? this.voiceReplies,
       themeMode: themeMode ?? this.themeMode,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      phoneCountryCode: phoneCountryCode ?? this.phoneCountryCode,
       completed: completed ?? this.completed,
     );
   }
@@ -82,6 +115,8 @@ class UserProfile {
         'notificationsEnabled': notificationsEnabled,
         'voiceReplies': voiceReplies,
         'themeMode': themeMode.index,
+        'phoneNumber': phoneNumber,
+        'phoneCountryCode': phoneCountryCode,
         'profileCompleted': completed,
       };
 
@@ -97,6 +132,8 @@ class UserProfile {
       notificationsEnabled: m['notificationsEnabled'] == true,
       voiceReplies: m['voiceReplies'] == true,
       themeMode: ThemeMode.values[(m['themeMode'] as int?) ?? 0],
+      phoneNumber: (m['phoneNumber'] as String?) ?? '',
+      phoneCountryCode: (m['phoneCountryCode'] as String?) ?? '+221',
       completed: m['profileCompleted'] == true,
     );
   }
