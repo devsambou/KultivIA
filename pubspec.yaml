@@ -16,7 +16,7 @@ dependencies:
   # État de l'app
   provider: ^6.1.2
 
-  # Photo pour le diagnostic
+  # Photo pour le diagnostic + photo de profil
   image_picker: ^1.1.2
 
   # Auth + BDD (à activer après `flutterfire configure`)
@@ -52,6 +52,9 @@ dependencies:
   record: ^6.0.0
   audioplayers: ^6.1.0
   path_provider: ^2.1.4
+
+  # Stockage Firebase (photos de profil)
+  firebase_storage: ^12.3.0
 
 dev_dependencies:
   flutter_test:

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
+import 'dart:io';
 
 import '../../services/system/app_state.dart';
 import '../../services/auth/firebase_service.dart';
@@ -21,11 +23,68 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _busy = false;
   bool _locating = false;
+  bool _uploadingPhoto = false;
   final _nameController = TextEditingController();
   final _localityController = TextEditingController();
+  File? _pickedImage;
 
   void _toast(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _loadProfile() async {
+    final app = context.read<AppState>();
+    final fb = context.read<FirebaseService>();
+    if (app.profile == null) {
+      final profile = await fb.fetchProfile();
+      if (profile != null && mounted) {
+        app.setProfile(profile);
+      }
+    }
+    final profile = app.profile;
+    if (profile != null) {
+      _nameController.text = profile.displayName;
+      _localityController.text = profile.locality;
+      setState(() {});
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      setState(() => _pickedImage = File(picked.path));
+      await _uploadPhoto();
+    }
+  }
+
+  Future<void> _uploadPhoto() async {
+    if (_pickedImage == null) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      final fb = context.read<FirebaseService>();
+      final profile = context.read<AppState>().profile;
+      if (profile == null) return;
+
+      // Upload vers Firebase Storage
+      final uid = fb.currentUser?.uid;
+      if (uid == null) throw Exception('Utilisateur non connecté');
+
+      final ref = fb.storageRef().child('profile_photos/$uid.jpg');
+      await ref.putFile(_pickedImage!);
+      final downloadUrl = await ref.getDownloadURL();
+
+      final updated = (context.read<AppState>().profile)!.copyWith(photoUrl: downloadUrl);
+      await fb.saveProfile(updated);
+      context.read<AppState>().setProfile(updated);
+
+      _toast('Photo de profil mise à jour');
+    } catch (e) {
+      debugPrint('Erreur upload photo : $e');
+      _toast('Erreur upload : $e');
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
 
   Future<void> _saveProfile() async {
     final app = context.read<AppState>();
@@ -86,12 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final app = context.read<AppState>();
-    final profile = app.profile;
-    if (profile != null) {
-      _nameController.text = profile.displayName;
-      _localityController.text = profile.locality;
-    }
+    _loadProfile();
   }
 
   @override
@@ -106,6 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final app = context.watch<AppState>();
     final profile = app.profile;
     final name = profile?.displayName.trim() ?? '';
+    final photoUrl = profile?.photoUrl;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -117,13 +172,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 36,
-                  backgroundColor: cs.primaryContainer,
-                  child: Text(
-                    name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(fontSize: 28),
-                  ),
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: cs.primaryContainer,
+                      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                          ? NetworkImage(photoUrl)
+                          : null,
+                      child: (photoUrl == null || photoUrl.isEmpty)
+                          ? Text(
+                              name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
+                              style: const TextStyle(fontSize: 32),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: InkWell(
+                        onTap: _pickImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: cs.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 TextField(
