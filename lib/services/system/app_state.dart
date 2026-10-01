@@ -22,7 +22,10 @@ class AppState extends ChangeNotifier {
   bool get voiceReplies => settings.voiceReplies;
 
   void setLanguage(String code) {
-    throw UnimplementedError();
+    if (settings.languageCode == code) return;
+
+    settings.setLanguage(code);
+    notifyListeners();
   }
 
   void setVoiceReplies(bool on) {

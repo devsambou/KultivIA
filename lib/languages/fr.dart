@@ -9,7 +9,6 @@ const frenchPack = LanguagePack(
     'caméra',
     'camera',
     'prendre une photo',
-    'diagnostiquer',
   ],
   cameraReply:
       'D’accord. Prenez une photo claire de la plante pour que je puisse essayer de l’analyser.',
