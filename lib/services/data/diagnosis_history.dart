@@ -18,23 +18,33 @@ class DiagnosisHistory extends ChangeNotifier {
   List<Diagnosis> get history => List.unmodifiable(_history);
 
   void addDiagnosis(Diagnosis diagnosis) {
-    throw UnimplementedError();
+    _history.insert(0, diagnosis);
+    notifyListeners();
   }
 
   void bindHistory() {
-    throw UnimplementedError();
+    _historySub = _repository.watchDiagnoses().listen((list) {
+      _history
+        ..clear()
+        ..addAll(list);
+      notifyListeners();
+    });
   }
 
   void removeDiagnosis(String diagnosisId) {
-    throw UnimplementedError();
+    _history.removeWhere((d) => d.id == diagnosisId);
+    notifyListeners();
   }
 
   void clear() {
-    throw UnimplementedError();
+    _history.clear();
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    throw UnimplementedError();
+    _historySub?.cancel();
+    _historySub = null;
+    super.dispose();
   }
 }
