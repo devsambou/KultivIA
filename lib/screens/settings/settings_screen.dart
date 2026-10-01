@@ -6,7 +6,6 @@ import '../../services/auth/firebase_service.dart';
 import '../../services/system/notification_service.dart';
 import '../../services/system/user_settings.dart';
 import '../../services/ui/voice_service.dart';
-import '../../models/user_profile.dart';
 import '../../core/theme/theme.dart';
 import '../../widgets/k_components.dart';
 
@@ -59,8 +58,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(KSpace.lg),
         children: [
-          // Langue
-          Text('Langue', style: Theme.of(context).textTheme.titleSmall),
+          // Langue de l'interface
+          Text('Langue de l\'application', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           for (final e in UserSettings.supportedLanguages.entries)
             KCard(
@@ -87,6 +86,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
             ),
+          const SizedBox(height: 24),
+
+          // Langue de discussion avec l'IA
+          Text('Langue de l\'assistant IA', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          for (final e in UserSettings.supportedLanguages.entries)
+            KCard(
+              child: RadioListTile<String>(
+                title: Text(e.value),
+                secondary: IconButton(
+                  icon: const Icon(Icons.volume_up_outlined),
+                  tooltip: 'Écouter',
+                  onPressed: () => VoiceService().speak(
+                    VoiceService.greetings[e.key] ?? '',
+                    languageCode: e.key,
+                  ),
+                ),
+                value: e.key,
+                groupValue: app.aiLanguageCode,
+                onChanged: (v) {
+                  if (v != null) {
+                    app.setAiLanguage(v);
+                    if (profile != null) {
+                      final updated = profile.copyWith(aiLanguageCode: v);
+                      context.read<FirebaseService>().saveProfile(updated);
+                    }
+                  }
+                },
+              ),
+            ),
+          const SizedBox(height: 24),
+
+          // Thème
+          Text('Apparence', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          KCard(
+            child: Column(
+              children: [
+                RadioListTile<ThemeMode>(
+                  title: const Text('Clair'),
+                  subtitle: const Text('Toujours utiliser le thème clair'),
+                  value: ThemeMode.light,
+                  groupValue: app.themeMode,
+                  onChanged: (v) {
+                    if (v != null) {
+                      app.setThemeMode(v);
+                      if (profile != null) {
+                        final updated = profile.copyWith(themeMode: v);
+                        context.read<FirebaseService>().saveProfile(updated);
+                      }
+                    }
+                  },
+                ),
+                RadioListTile<ThemeMode>(
+                  title: const Text('Sombre'),
+                  subtitle: const Text('Toujours utiliser le thème sombre'),
+                  value: ThemeMode.dark,
+                  groupValue: app.themeMode,
+                  onChanged: (v) {
+                    if (v != null) {
+                      app.setThemeMode(v);
+                      if (profile != null) {
+                        final updated = profile.copyWith(themeMode: v);
+                        context.read<FirebaseService>().saveProfile(updated);
+                      }
+                    }
+                  },
+                ),
+                RadioListTile<ThemeMode>(
+                  title: const Text('Système'),
+                  subtitle: const Text('Suivre le réglage du téléphone'),
+                  value: ThemeMode.system,
+                  groupValue: app.themeMode,
+                  onChanged: (v) {
+                    if (v != null) {
+                      app.setThemeMode(v);
+                      if (profile != null) {
+                        final updated = profile.copyWith(themeMode: v);
+                        context.read<FirebaseService>().saveProfile(updated);
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 24),
 
           // Notifications

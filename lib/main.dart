@@ -99,7 +99,7 @@ class KultivIaApp extends StatelessWidget {
 
             theme: KultivTheme.light(),
             darkTheme: KultivTheme.dark(),
-            themeMode: ThemeMode.system,
+            themeMode: appState.themeMode,
 
             // Flutter's built-in MaterialLocalizations/CupertinoLocalizations only support fr/en.
             // Custom translations for wo/ln are handled by AppLocalizations, but Material/Cupertino
