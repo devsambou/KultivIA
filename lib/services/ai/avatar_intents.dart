@@ -1,9 +1,15 @@
-// Intentions simples de l'avatar. Issue GitHub : #TODO
+import '../../languages/registry.dart';
 
 bool looksLikeCameraRequest(String text) {
-  throw UnimplementedError();
+  final normalized = text.toLowerCase().trim();
+
+  return languagePacks.any(
+    (pack) => pack.cameraWords.any(
+      (word) => normalized.contains(word.toLowerCase()),
+    ),
+  );
 }
 
 String cameraReply(String languageCode) {
-  throw UnimplementedError();
+  return languagePackFor(languageCode).cameraReply;
 }

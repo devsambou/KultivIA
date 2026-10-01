@@ -1,15 +1,14 @@
-// Réglages utilisateur. Issue GitHub : #TODO
+// RÃƒÂ©glages utilisateur. Issue GitHub : #TODO
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
+import '../../languages/registry.dart';
 
-/// Réglages utilisateur qui changent rarement (langue, voix).
+/// RÃƒÂ©glages utilisateur qui changent rarement (langue, voix).
 class UserSettings extends ChangeNotifier {
-  static const supportedLanguages = <String, String>{
-    'fr': 'Français',
-    'en': 'English',
-    'wo': 'Wolof',
-  };
+  static Map<String, String> get supportedLanguages => {
+        for (final pack in languagePacks) pack.code: pack.name,
+      };
 
   String _languageCode = 'fr';
   bool _voiceReplies = false;
