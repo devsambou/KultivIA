@@ -19,11 +19,11 @@ service cloud.firestore {
     }
     
     // Signalements communautaires : lecture publique, écriture utilisateur connecté
-    match /reports/{reportId} {
+    match /signalements/{reportId} {
       allow read: if true;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null &&
+        request.auth.uid == resource.data.authorId;
     }
     
     // Alertes météo : lecture publique
