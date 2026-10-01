@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'l10n/app_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -102,49 +103,51 @@ class KultivIaApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
-        title: 'KultivIA',
-        debugShowCheckedModeBanner: false,
-        theme: KultivTheme.light(),
-        darkTheme: KultivTheme.dark(),
-        themeMode: ThemeMode.system,
-        initialRoute: '/',
-        routes: {
-          // Écran de démarrage / redirection — TODO: à assigner
-          '/': (_) => const GateScreen(),
-          // Onboarding (première utilisation) — TODO: à assigner
-          '/onboarding': (_) => const OnboardingScreen(),
-          // Authentification — TODO: à assigner
-          '/auth': (_) => const AuthScreen(),
-          // Configuration initiale — TODO: à assigner
-          '/setup': (_) => const SetupScreen(),
-          // Choix de la langue — TODO: à assigner
-          '/language': (_) => const LanguageScreen(),
-          // Conversation principale avec l'IA — TODO: à assigner
-          '/home': (_) => const HomeAiScreen(),
-          // Historique des diagnostics — TODO: à assigner
-          '/history': (_) => const HistoryScreen(),
-          // Profil utilisateur — TODO: à assigner
-          '/profile': (_) => const ProfileScreen(),
-          // Carte des vendeurs d'intrants — TODO: à assigner
-          '/vendors': (_) => const VendorsMapScreen(),
-          // Alertes météo — TODO: à assigner
-          '/weather': (_) => const WeatherAlertsScreen(),
-          // Signalements communautaires — TODO: à assigner
-          '/community': (_) => const CommunityScreen(),
-          // Marketplace (vente/achat récoltes) — TODO: à assigner
-          '/marketplace': (_) => const MarketplaceScreen(),
-          // Score de santé de l'exploitation — TODO: à assigner
-          '/health-dashboard': (_) => const HealthDashboardScreen(),
-        },
-        onGenerateRoute: (settings) {
-          if (settings.name == '/result') {
-            final diagnosis = settings.arguments as Diagnosis;
-            return MaterialPageRoute(builder: (_) => DiagnosisResultScreen(diagnosis: diagnosis));
-          }
-          return null;
-        },
-      ),
+        child: Consumer<AppState>(
+          builder: (context, appState, _) {
+            return MaterialApp(
+              title: 'KultivIA',
+              debugShowCheckedModeBanner: false,
+
+              theme: KultivTheme.light(),
+              darkTheme: KultivTheme.dark(),
+              themeMode: ThemeMode.system,
+
+              locale: Locale(appState.languageCode),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+
+              initialRoute: '/',
+              routes: {
+                '/': (_) => const GateScreen(),
+                '/onboarding': (_) => const OnboardingScreen(),
+                '/auth': (_) => const AuthScreen(),
+                '/setup': (_) => const SetupScreen(),
+                '/language': (_) => const LanguageScreen(),
+                '/home': (_) => const HomeAiScreen(),
+                '/history': (_) => const HistoryScreen(),
+                '/profile': (_) => const ProfileScreen(),
+                '/vendors': (_) => const VendorsMapScreen(),
+                '/weather': (_) => const WeatherAlertsScreen(),
+                '/community': (_) => const CommunityScreen(),
+                '/marketplace': (_) => const MarketplaceScreen(),
+                '/health-dashboard': (_) => const HealthDashboardScreen(),
+              },
+
+              onGenerateRoute: (settings) {
+                if (settings.name == '/result') {
+                  final diagnosis = settings.arguments as Diagnosis;
+                  return MaterialPageRoute(
+                    builder: (_) => DiagnosisResultScreen(
+                      diagnosis: diagnosis,
+                    ),
+                  );
+                }
+                return null;
+              },
+            );
+          },
+        ),
     );
   }
 }
