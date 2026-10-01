@@ -105,9 +105,11 @@ class KultivIaApp extends StatelessWidget {
       child: MaterialApp(
         title: 'KultivIA',
         debugShowCheckedModeBanner: false,
+
         theme: KultivTheme.light(),
         darkTheme: KultivTheme.dark(),
         themeMode: ThemeMode.system,
+
         initialRoute: '/',
         routes: {
           // Écran de démarrage / redirection — TODO: à assigner
@@ -118,14 +120,14 @@ class KultivIaApp extends StatelessWidget {
           '/auth': (_) => const AuthScreen(),
           // Configuration initiale — TODO: à assigner
           '/setup': (_) => const SetupScreen(),
+          // Paramètres (langue, notifications, voix) — TODO: à assigner
+          '/settings': (_) => const SettingsScreen(),
           // Conversation principale avec l'IA — TODO: à assigner
           '/home': (_) => const HomeAiScreen(),
           // Historique des diagnostics — TODO: à assigner
           '/history': (_) => const HistoryScreen(),
           // Profil utilisateur — TODO: à assigner
           '/profile': (_) => const ProfileScreen(),
-          // Paramètres (langue, notifications, voix) — TODO: à assigner
-          '/settings': (_) => const SettingsScreen(),
           // Carte des vendeurs d'intrants — TODO: à assigner
           '/vendors': (_) => const VendorsMapScreen(),
           // Alertes météo — TODO: à assigner
@@ -137,10 +139,15 @@ class KultivIaApp extends StatelessWidget {
           // Score de santé de l'exploitation — TODO: à assigner
           '/health-dashboard': (_) => const HealthDashboardScreen(),
         },
+
         onGenerateRoute: (settings) {
           if (settings.name == '/result') {
             final diagnosis = settings.arguments as Diagnosis;
-            return MaterialPageRoute(builder: (_) => DiagnosisResultScreen(diagnosis: diagnosis));
+            return MaterialPageRoute(
+              builder: (_) => DiagnosisResultScreen(
+                diagnosis: diagnosis,
+              ),
+            );
           }
           return null;
         },

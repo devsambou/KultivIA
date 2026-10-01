@@ -1,5 +1,5 @@
 name: kultivia
-description: "KultivIA — diagnostic IA des maladies de cultures, par photo, texte et voix."
+description: "KultivIA : diagnostic IA des maladies de cultures, par photo, texte et voix."
 publish_to: 'none'
 version: 0.1.0
 
@@ -57,6 +57,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/images/
