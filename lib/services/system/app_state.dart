@@ -19,9 +19,11 @@ class AppState extends ChangeNotifier {
   });
 
   String get languageCode => settings.languageCode;
+  String get aiLanguageCode => settings.aiLanguageCode;
   bool get voiceReplies => settings.voiceReplies;
+  ThemeMode get themeMode => settings.themeMode;
 
-  /// Change la langue de l'interface et de l'avatar, et la persiste dans le profil
+  /// Change la langue de l'interface et la persiste dans le profil
   /// si un profil est chargé.
   void setLanguage(String code) {
     if (settings.languageCode == code) return;
@@ -34,11 +36,34 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Change la langue de discussion avec l'IA et la persiste dans le profil
+  /// si un profil est chargé.
+  void setAiLanguage(String code) {
+    if (settings.aiLanguageCode == code) return;
+
+    settings.setAiLanguage(code);
+    final p = profile;
+    if (p != null && p.aiLanguageCode != code) {
+      profile = p.copyWith(aiLanguageCode: code);
+    }
+    notifyListeners();
+  }
+
   void setVoiceReplies(bool on) {
     settings.setVoiceReplies(on);
     final p = profile;
     if (p != null && p.voiceReplies != on) {
       profile = p.copyWith(voiceReplies: on);
+    }
+    notifyListeners();
+  }
+
+  /// Change le mode de thème et le persiste dans le profil si chargé.
+  void setThemeMode(ThemeMode mode) {
+    settings.setThemeMode(mode);
+    final p = profile;
+    if (p != null && p.themeMode != mode) {
+      profile = p.copyWith(themeMode: mode);
     }
     notifyListeners();
   }

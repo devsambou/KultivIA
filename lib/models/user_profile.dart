@@ -1,4 +1,6 @@
 /// Profil renseigné à la première connexion (stocké dans `users/{uid}`).
+import 'package:flutter/material.dart';
+
 class UserProfile {
   const UserProfile({
     required this.displayName,
@@ -7,8 +9,10 @@ class UserProfile {
     this.locality = '',
     this.crops = const [],
     this.languageCode = 'fr',
+    this.aiLanguageCode = 'fr',
     this.notificationsEnabled = false,
     this.voiceReplies = false,
+    this.themeMode = ThemeMode.system,
     this.completed = false,
   });
 
@@ -24,10 +28,12 @@ class UserProfile {
   final String locality;
   final List<String> crops;
   final String languageCode;
+  final String aiLanguageCode;
   final bool notificationsEnabled;
 
   /// L'avatar lit ses réponses à voix haute (pour ceux qui lisent difficilement).
   final bool voiceReplies;
+  final ThemeMode themeMode;
   final bool completed;
 
   String get roleLabel => roles[role] ?? roles['farmer']!;
@@ -44,8 +50,10 @@ class UserProfile {
     String? locality,
     List<String>? crops,
     String? languageCode,
+    String? aiLanguageCode,
     bool? notificationsEnabled,
     bool? voiceReplies,
+    ThemeMode? themeMode,
     bool? completed,
   }) {
     return UserProfile(
@@ -55,8 +63,10 @@ class UserProfile {
       locality: locality ?? this.locality,
       crops: crops ?? this.crops,
       languageCode: languageCode ?? this.languageCode,
+      aiLanguageCode: aiLanguageCode ?? this.aiLanguageCode,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       voiceReplies: voiceReplies ?? this.voiceReplies,
+      themeMode: themeMode ?? this.themeMode,
       completed: completed ?? this.completed,
     );
   }
@@ -68,8 +78,10 @@ class UserProfile {
         'locality': locality,
         'crops': crops,
         'languageCode': languageCode,
+        'aiLanguageCode': aiLanguageCode,
         'notificationsEnabled': notificationsEnabled,
         'voiceReplies': voiceReplies,
+        'themeMode': themeMode.index,
         'profileCompleted': completed,
       };
 
@@ -81,8 +93,10 @@ class UserProfile {
       locality: (m['locality'] as String?) ?? '',
       crops: List<String>.from((m['crops'] as List?) ?? const []),
       languageCode: (m['languageCode'] as String?) ?? 'fr',
+      aiLanguageCode: (m['aiLanguageCode'] as String?) ?? 'fr',
       notificationsEnabled: m['notificationsEnabled'] == true,
       voiceReplies: m['voiceReplies'] == true,
+      themeMode: ThemeMode.values[(m['themeMode'] as int?) ?? 0],
       completed: m['profileCompleted'] == true,
     );
   }
