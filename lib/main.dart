@@ -101,9 +101,13 @@ class KultivIaApp extends StatelessWidget {
             darkTheme: KultivTheme.dark(),
             themeMode: ThemeMode.system,
 
+            // Flutter's built-in MaterialLocalizations/CupertinoLocalizations only support fr/en.
+            // Custom translations for wo/ln are handled by AppLocalizations, but Material/Cupertino
+            // only support fr/en. So we restrict supportedLocales to fr/en for the framework,
+            // while AppLocalizations still provides custom translations for all 4 languages.
             locale: Locale(appState.languageCode),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
+            supportedLocales: const [Locale('fr'), Locale('en')],
 
             initialRoute: '/',
             routes: {
