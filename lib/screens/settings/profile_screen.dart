@@ -1,19 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 import '../../services/system/app_state.dart';
 import '../../services/auth/firebase_service.dart';
-import '../../services/system/notification_service.dart';
-import '../../services/system/user_settings.dart';
-import '../../services/ui/voice_service.dart';
 import '../../models/user_profile.dart';
-import '../../screens/setup/setup_controller.dart';
 import '../../core/theme/theme.dart';
 import '../../widgets/k_components.dart';
+import '../../screens/setup/setup_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,6 +27,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _toast(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
+  Future<void> _saveProfile() async {
+    final app = context.read<AppState>();
+    final fb = context.read<FirebaseService>();
+    final profile = app.profile;
+    if (profile == null) return;
+
+    setState(() => _busy = true);
+    try {
+      final updated = profile.copyWith(
+        displayName: _nameController.text.trim(),
+        locality: _localityController.text.trim(),
+      );
+      await fb.saveProfile(updated);
+      app.setProfile(updated);
+      _toast('Profil mis à jour');
+    } catch (e) {
+      debugPrint('Mise à jour profil impossible : $e');
+      _toast('Impossible de sauvegarder : $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _detectLocality() async {
     setState(() => _locating = true);
     try {
@@ -41,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
       final pos = await Geolocator.getCurrentPosition();
-      // Geocoding inverse simple via Open-Meteo
       final url = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}&accept-language=fr',
       );
@@ -63,45 +81,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _locating = false);
     }
-  }
-
-  Future<void> _toggleNotifications(bool on) async {
-    final app = context.read<AppState>();
-    final fb = context.read<FirebaseService>();
-    final notif = context.read<NotificationService>();
-    final profile = app.profile;
-    final uid = fb.currentUser?.uid;
-    if (profile == null || uid == null) return;
-
-    setState(() => _busy = true);
-    try {
-      final enabled = on ? await notif.enable(uid) : false;
-      if (!on) await notif.disable();
-      final updated = profile.copyWith(notificationsEnabled: enabled);
-      await fb.saveProfile(updated);
-      app.setProfile(updated);
-      if (on && !enabled) {
-        _toast('Autorisez les notifications dans les réglages du téléphone.');
-      }
-    } catch (e) {
-      debugPrint('Changement de notifications impossible : $e');
-      _toast('Impossible de modifier ce réglage pour le moment.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _logout() async {
-    final app = context.read<AppState>();
-    final fb = context.read<FirebaseService>();
-    final notif = context.read<NotificationService>();
-    if (fb.isReady) {
-      await notif.disable();
-      await fb.signOut();
-    }
-    await app.clear();
-    if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil('/auth', (r) => false);
   }
 
   @override
@@ -257,67 +236,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Langue
-          Text('Langue', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          for (final e in UserSettings.supportedLanguages.entries)
-            KCard(
-              child: RadioListTile<String>(
-                title: Text(e.value),
-                secondary: IconButton(
-                  icon: const Icon(Icons.volume_up_outlined),
-                  tooltip: 'Écouter',
-                  onPressed: () => VoiceService().speak(
-                    VoiceService.greetings[e.key] ?? '',
-                    languageCode: e.key,
-                  ),
-                ),
-                value: e.key,
-                groupValue: app.languageCode,
-                onChanged: (v) {
-                  if (v != null) {
-                    app.setLanguage(v);
-                    if (profile != null) {
-                      final updated = profile.copyWith(languageCode: v);
-                      context.read<FirebaseService>().saveProfile(updated);
-                    }
-                  }
-                },
-              ),
-            ),
-          const SizedBox(height: 24),
-
-          // Notifications
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined),
-            title: const Text('Notifications'),
-            subtitle: const Text('Alertes météo et signalements'),
-            value: profile?.notificationsEnabled ?? false,
-            onChanged: _busy || profile == null ? null : _toggleNotifications,
-          ),
-          const SizedBox(height: 8),
-
-          // Voix
-          SwitchListTile(
-            secondary: const Icon(Icons.volume_up_outlined),
-            title: const Text('Écouter les réponses'),
-            subtitle: const Text("L'assistant vous parle à voix haute"),
-            value: profile?.voiceReplies ?? false,
-            onChanged: (on) {
-              if (profile != null) {
-                app.setVoiceReplies(on);
-                final updated = profile.copyWith(voiceReplies: on);
-                context.read<FirebaseService>().saveProfile(updated);
-              }
-            },
-          ),
-          const Divider(height: 32),
-
-          // Déconnexion
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Déconnexion'),
-            onTap: _logout,
+          // Bouton sauvegarder
+          FilledButton(
+            onPressed: _busy ? null : _saveProfile,
+            child: _busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Enregistrer'),
           ),
         ],
       ),

@@ -17,6 +17,7 @@ import 'screens/home_ai/home_ai_screen.dart';
 import 'screens/market/marketplace_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/settings/profile_screen.dart';
+import 'screens/settings/settings_screen.dart';
 import 'screens/setup/setup_controller.dart';
 import 'screens/setup/setup_screen.dart';
 import 'screens/market/vendors_map_screen.dart';
@@ -123,6 +124,8 @@ class KultivIaApp extends StatelessWidget {
           '/history': (_) => const HistoryScreen(),
           // Profil utilisateur — TODO: à assigner
           '/profile': (_) => const ProfileScreen(),
+          // Paramètres (langue, notifications, voix) — TODO: à assigner
+          '/settings': (_) => const SettingsScreen(),
           // Carte des vendeurs d'intrants — TODO: à assigner
           '/vendors': (_) => const VendorsMapScreen(),
           // Alertes météo — TODO: à assigner
