@@ -1,10 +1,10 @@
-// RÃƒÂ©glages utilisateur. Issue GitHub : #TODO
+// Réglages utilisateur. Issue GitHub : #TODO
 import 'package:flutter/material.dart';
 
 import '../../models/user_profile.dart';
 import '../../languages/registry.dart';
 
-/// RÃƒÂ©glages utilisateur qui changent rarement (langue, voix).
+/// Réglages utilisateur qui changent rarement (langue, voix).
 class UserSettings extends ChangeNotifier {
   static Map<String, String> get supportedLanguages => {
         for (final pack in languagePacks) pack.code: pack.name,
@@ -16,19 +16,29 @@ class UserSettings extends ChangeNotifier {
   String get languageCode => _languageCode;
   bool get voiceReplies => _voiceReplies;
 
+  /// Change la langue de l'interface et de l'avatar.
   void setLanguage(String code) {
-    throw UnimplementedError();
+    if (_languageCode == code) return;
+    _languageCode = code;
+    notifyListeners();
   }
 
   void setVoiceReplies(bool on) {
-    throw UnimplementedError();
+    if (_voiceReplies == on) return;
+    _voiceReplies = on;
+    notifyListeners();
   }
 
+  /// Applique les settings depuis le profil chargé (inscription / profil).
   void applyFromProfile(UserProfile profile) {
-    throw UnimplementedError();
+    _languageCode = profile.languageCode;
+    _voiceReplies = profile.voiceReplies;
+    notifyListeners();
   }
 
-  Map<String, dynamic> toProfileMap() {
-    throw UnimplementedError();
-  }
+  /// Exporte les settings pour les persister dans users/{uid}.
+  Map<String, dynamic> toProfileMap() => {
+        'languageCode': _languageCode,
+        'voiceReplies': _voiceReplies,
+      };
 }
