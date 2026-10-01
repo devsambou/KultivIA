@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  flutter_localizations:
+    sdk: flutter
 
   # État de l'app
   provider: ^6.1.2
@@ -26,7 +28,8 @@ dependencies:
   sign_in_with_apple: ^6.1.3
   geolocator: ^13.0.1
   geoflutterfire_plus: ^0.0.31
-  firebase_messaging: ^15.1.3   # notifications push
+  firebase_messaging: ^15.1.3
+   # notifications push
 
   # Supabase
   supabase_flutter: ^2.8.0

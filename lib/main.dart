@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'l10n/app_localizations.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,18 +34,13 @@ import 'core/theme/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Load environment variables
   await dotenv.load(fileName: '.env');
 
-  // Initialize Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL'] ?? 'https://hyvhwsclfjnnbrpdsypt.supabase.co',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? 'sb_publishable_FrQ414tsGK01Da6to6RVmA_cbKN4goJ',
   );
 
-  // Utilise google-services.json (Android) / GoogleService-Info.plist (iOS),
-  // ajoutés par `flutterfire configure` — voir README. Si la config est
-  // absente, l'app démarre quand même (onboarding) mais sans connexion.
   try {
     await Firebase.initializeApp();
   } catch (e) {
@@ -61,22 +57,18 @@ class KultivIaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Core settings (no dependencies) — TODO: à assigner
         ChangeNotifierProvider(create: (_) => UserSettings()),
 
-        // Repository abstraction — TODO: à assigner
         Provider<DiagnosisRepository>(
           create: (_) => FirebaseDiagnosisRepository(),
         ),
 
-        // History depends on DiagnosisRepository — TODO: à assigner
         ChangeNotifierProvider(
           create: (context) => DiagnosisHistory(
             context.read<DiagnosisRepository>(),
           ),
         ),
 
-        // AppState depends on UserSettings and DiagnosisHistory — TODO: à assigner
         ChangeNotifierProvider(
           create: (context) => AppState(
             settings: context.read<UserSettings>(),
@@ -84,15 +76,12 @@ class KultivIaApp extends StatelessWidget {
           ),
         ),
 
-        // Firebase services (no dependencies) — TODO: à assigner
         Provider<FirebaseService>(create: (_) => FirebaseService()),
         Provider<SupabaseService>(create: (_) => SupabaseService()),
         Provider<NotificationService>(create: (_) => NotificationService()),
 
-        // AI service — TODO: à assigner
         Provider<RodiumAiService>(create: (_) => RodiumAiService()),
 
-        // SetupController depends on AppState, FirebaseService, NotificationService, DiagnosisRepository — TODO: à assigner
         ChangeNotifierProvider(
           create: (context) => SetupController(
             appState: context.read<AppState>(),
@@ -102,54 +91,49 @@ class KultivIaApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp(
-        title: 'KultivIA',
-        debugShowCheckedModeBanner: false,
+      child: Consumer<AppState>(
+        builder: (context, appState, _) {
+          return MaterialApp(
+            title: 'KultivIA',
+            debugShowCheckedModeBanner: false,
 
-        theme: KultivTheme.light(),
-        darkTheme: KultivTheme.dark(),
-        themeMode: ThemeMode.system,
+            theme: KultivTheme.light(),
+            darkTheme: KultivTheme.dark(),
+            themeMode: ThemeMode.system,
 
-        initialRoute: '/',
-        routes: {
-          // Écran de démarrage / redirection — TODO: à assigner
-          '/': (_) => const GateScreen(),
-          // Onboarding (première utilisation) — TODO: à assigner
-          '/onboarding': (_) => const OnboardingScreen(),
-          // Authentification — TODO: à assigner
-          '/auth': (_) => const AuthScreen(),
-          // Configuration initiale — TODO: à assigner
-          '/setup': (_) => const SetupScreen(),
-          // Paramètres (langue, notifications, voix) — TODO: à assigner
-          '/settings': (_) => const SettingsScreen(),
-          // Conversation principale avec l'IA — TODO: à assigner
-          '/home': (_) => const HomeAiScreen(),
-          // Historique des diagnostics — TODO: à assigner
-          '/history': (_) => const HistoryScreen(),
-          // Profil utilisateur — TODO: à assigner
-          '/profile': (_) => const ProfileScreen(),
-          // Carte des vendeurs d'intrants — TODO: à assigner
-          '/vendors': (_) => const VendorsMapScreen(),
-          // Alertes météo — TODO: à assigner
-          '/weather': (_) => const WeatherAlertsScreen(),
-          // Signalements communautaires — TODO: à assigner
-          '/community': (_) => const CommunityScreen(),
-          // Marketplace (vente/achat récoltes) — TODO: à assigner
-          '/marketplace': (_) => const MarketplaceScreen(),
-          // Score de santé de l'exploitation — TODO: à assigner
-          '/health-dashboard': (_) => const HealthDashboardScreen(),
-        },
+            locale: Locale(appState.languageCode),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
 
-        onGenerateRoute: (settings) {
-          if (settings.name == '/result') {
-            final diagnosis = settings.arguments as Diagnosis;
-            return MaterialPageRoute(
-              builder: (_) => DiagnosisResultScreen(
-                diagnosis: diagnosis,
-              ),
-            );
-          }
-          return null;
+            initialRoute: '/',
+            routes: {
+              '/': (_) => const GateScreen(),
+              '/onboarding': (_) => const OnboardingScreen(),
+              '/auth': (_) => const AuthScreen(),
+              '/setup': (_) => const SetupScreen(),
+              '/settings': (_) => const SettingsScreen(),
+              '/home': (_) => const HomeAiScreen(),
+              '/history': (_) => const HistoryScreen(),
+              '/profile': (_) => const ProfileScreen(),
+              '/vendors': (_) => const VendorsMapScreen(),
+              '/weather': (_) => const WeatherAlertsScreen(),
+              '/community': (_) => const CommunityScreen(),
+              '/marketplace': (_) => const MarketplaceScreen(),
+              '/health-dashboard': (_) => const HealthDashboardScreen(),
+            },
+
+            onGenerateRoute: (settings) {
+              if (settings.name == '/result') {
+                final diagnosis = settings.arguments as Diagnosis;
+                return MaterialPageRoute(
+                  builder: (_) => DiagnosisResultScreen(
+                    diagnosis: diagnosis,
+                  ),
+                );
+              }
+              return null;
+            },
+          );
         },
       ),
     );

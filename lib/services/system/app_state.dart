@@ -24,6 +24,8 @@ class AppState extends ChangeNotifier {
   /// Change la langue de l'interface et de l'avatar, et la persiste dans le profil
   /// si un profil est chargé.
   void setLanguage(String code) {
+    if (settings.languageCode == code) return;
+
     settings.setLanguage(code);
     final p = profile;
     if (p != null && p.languageCode != code) {
