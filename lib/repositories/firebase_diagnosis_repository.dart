@@ -20,7 +20,7 @@ class FirebaseDiagnosisRepository implements DiagnosisRepository {
   FirebaseAuth get _auth => _authOverride ?? FirebaseAuth.instance;
   FirebaseFirestore get _firestore => _firestoreOverride ?? FirebaseFirestore.instance;
 
-  bool get _isReady => FirebaseAuth.instance.app != null && Firebase.apps.isNotEmpty;
+  bool get _isReady => Firebase.apps.isNotEmpty;
 
   String? get _currentUid => _isReady ? _auth.currentUser?.uid : null;
 
