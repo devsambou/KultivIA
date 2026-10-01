@@ -10,7 +10,7 @@ import '../../services/ui/voice_service.dart';
 /// Contrôleur pour l'écran de paramétrage (SetupScreen).
 /// Gère l'état du formulaire, la validation et la persistance.
 class SetupController extends ChangeNotifier {
-  static const _cropOptions = [
+  static const cropOptionsList = [
     'Mil', 'Maïs', 'Riz', 'Arachide', 'Niébé', 'Sorgho', 'Tomate', 'Oignon', 'Manioc', 'Pastèque',
   ];
   static const _stepCount = 3;
@@ -56,7 +56,7 @@ class SetupController extends ChangeNotifier {
   TextEditingController get nameController => _nameController;
   TextEditingController get localityController => _localityController;
   Set<String> get crops => _crops;
-  List<String> get cropOptions => _cropOptions;
+  List<String> get cropOptions => cropOptionsList;
 
   void _initialize() {
     final profile = _appState.profile;
@@ -129,12 +129,12 @@ class SetupController extends ChangeNotifier {
         Navigator.of(context).pop();
       } else {
         _appState.bindHistory();
-        Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => route.settings.name != '/gate');
       }
     } catch (e) {
       debugPrint('Enregistrement du profil impossible : $e');
       if (context.mounted) {
-        _toast(context, "Impossible d'enregistrer votre profil. Vérifiez votre connexion et réessayez.");
+        _toast(context, "Impossible d'enregistrer votre profil : $e");
       }
     } finally {
       if (context.mounted) {

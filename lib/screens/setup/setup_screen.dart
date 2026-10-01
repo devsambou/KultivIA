@@ -46,7 +46,9 @@ class _SetupScreenState extends State<SetupScreen> {
     final controller = context.watch<SetupController>();
 
     // Synchroniser le PageController avec l'état du controller
-    if (controller.step != _pageController.page?.round()) {
+    // (page n'est accessible qu'après que le PageView a été construit)
+    if (_pageController.hasClients &&
+        controller.step != _pageController.page?.round()) {
       _onStepChanged(controller.step);
     }
 

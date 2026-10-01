@@ -1,5 +1,5 @@
 name: kultivia
-description: "KultivIA — diagnostic IA des maladies de cultures, par photo, texte et voix."
+description: "KultivIA : diagnostic IA des maladies de cultures, par photo, texte et voix."
 publish_to: 'none'
 version: 0.1.0
 

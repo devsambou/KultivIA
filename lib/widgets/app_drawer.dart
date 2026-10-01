@@ -85,7 +85,7 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Paramètres'),
-            onTap: () => _go(context, '/language'),
+            onTap: () => _go(context, '/settings'),
           ),
           ListTile(
             leading: const Icon(Icons.logout),
