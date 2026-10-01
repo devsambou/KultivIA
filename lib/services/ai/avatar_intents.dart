@@ -1,24 +1,26 @@
-/// Intentions simples que l'avatar comprend sans appeler l'IA.
-
-final _cameraWords = RegExp(
-  r'(?<!\p{L})(photos?|foto|cam[eé]ra|kamera|nataal|pictures?)(?!\p{L})',
-  caseSensitive: false,
-  unicode: true,
-);
+import '../../languages/registry.dart';
 
 /// Vrai si le message demande d'ouvrir l'appareil photo (« photo »,
 /// « caméra », « foto »...). « photosynthèse » ne compte pas.
-bool looksLikeCameraRequest(String text) => _cameraWords.hasMatch(text);
+bool looksLikeCameraRequest(String text) {
+  final normalized = text.toLowerCase().trim();
+  if (normalized.isEmpty) return false;
+
+  for (final pack in languagePacks) {
+    for (final word in pack.cameraWords) {
+      final pattern = RegExp(
+        r'(?<!\p{L})' + RegExp.escape(word.toLowerCase()) + r'(?!\p{L})',
+        caseSensitive: false,
+        unicode: true,
+      );
+      if (pattern.hasMatch(normalized)) return true;
+    }
+  }
+  return false;
+}
 
 /// Ce que dit l'avatar avant d'ouvrir l'appareil photo.
 /// Le wolof est à faire relire par un locuteur natif.
 String cameraReply(String languageCode) {
-  switch (languageCode) {
-    case 'en':
-      return 'Okay, opening the camera. Take a picture of the sick leaf or plant.';
-    case 'wo':
-      return 'Waaw, dinaa ubbi kamera bi. Jël foto ci xob wi.';
-    default:
-      return "D'accord, j'ouvre l'appareil photo. Prenez la feuille ou la plante malade en photo.";
-  }
+  return languagePackFor(languageCode).cameraReply;
 }

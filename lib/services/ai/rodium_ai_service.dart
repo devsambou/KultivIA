@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import '../../languages/registry.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-
-import '../system/user_settings.dart';
 
 /// Encapsule tous les appels à l'IA (RodiumAI) pour KultivIA :
 /// - diagnostic à partir d'une photo (vision)
@@ -15,21 +14,24 @@ import '../system/user_settings.dart';
 /// Tout passe par la Cloud Function `aiProxy` (voir functions/index.js),
 /// qui garde la clé côté serveur.
 class RodiumAiService {
-  RodiumAiService({FirebaseFunctions? functions}) : _functionsOverride = functions;
+  RodiumAiService({FirebaseFunctions? functions})
+      : _functionsOverride = functions;
 
   final FirebaseFunctions? _functionsOverride;
-  FirebaseFunctions get _functions => _functionsOverride ?? FirebaseFunctions.instance;
+  FirebaseFunctions get _functions =>
+      _functionsOverride ?? FirebaseFunctions.instance;
 
-  static String _languageName(String code) => UserSettings.supportedLanguages[code] ?? code;
+  static String _languageName(String code) => languagePackFor(code).name;
 
   /// Consignes communes : les réponses sont LUES À VOIX HAUTE à des
   /// utilisateurs qui ne savent parfois pas lire.
   static String _spokenStyle(String languageCode) => '''
-Tes réponses seront lues à voix haute : phrases courtes, mots simples, pas de
+Tes réponses seront lues À VOIX HAUTE à des
+utilisateurs qui ne savent parfois pas lire.
+Phrases courtes, mots simples, pas de
 symboles, pas de listes, pas de markdown, pas d'emoji. Écris les unités en
-toutes lettres (litre, gramme, jour).${languageCode == 'wo' ? '''
-Écris en wolof courant (alphabet latin officiel). Si tu n'es pas sûr d'un mot
-technique en wolof, garde le mot français plutôt que d'inventer.''' : ''}
+toutes lettres (litre, gramme, jour).
+${languagePackFor(languageCode).spokenStyleHint}
 ''';
 
   static String _diagnosisPrompt(String languageCode) => '''
@@ -77,12 +79,14 @@ ${_spokenStyle(languageCode)}''';
 
   /// Synthèse vocale (RodiumAI, via la Cloud Function `aiSpeech`).
   /// Renvoie les octets d'un fichier mp3 prêt à être lu.
-  Future<Uint8List> synthesizeSpeech({required String text, String languageCode = 'fr'}) async {
+  Future<Uint8List> synthesizeSpeech(
+      {required String text, String languageCode = 'fr'}) async {
     final callable = _functions.httpsCallable(
       'aiSpeech',
       options: HttpsCallableOptions(timeout: const Duration(seconds: 45)),
     );
-    final result = await callable.call({'text': text, 'language': languageCode});
+    final result =
+        await callable.call({'text': text, 'language': languageCode});
     final data = Map<String, dynamic>.from(result.data as Map);
     return base64Decode((data['audio'] ?? '').toString());
   }
@@ -114,7 +118,9 @@ ${_spokenStyle(languageCode)}''';
   }) async {
     final bytes = await imageFile.readAsBytes();
     final base64Image = base64Encode(bytes);
-    final mimeType = imageFile.path.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    final mimeType = imageFile.path.toLowerCase().endsWith('.png')
+        ? 'image/png'
+        : 'image/jpeg';
 
     final messages = [
       {'role': 'system', 'content': _diagnosisPrompt(languageCode)},
@@ -135,7 +141,8 @@ ${_spokenStyle(languageCode)}''';
       },
     ];
 
-    final content = await _callProxy(messages: messages, language: languageCode);
+    final content =
+        await _callProxy(messages: messages, language: languageCode);
     return parseAiJsonResponse(content);
   }
 
@@ -149,7 +156,8 @@ ${_spokenStyle(languageCode)}''';
       {'role': 'system', 'content': _diagnosisPrompt(languageCode)},
       {'role': 'user', 'content': description},
     ];
-    final content = await _callProxy(messages: messages, language: languageCode);
+    final content =
+        await _callProxy(messages: messages, language: languageCode);
     return parseAiJsonResponse(content);
   }
 
@@ -164,7 +172,11 @@ ${_spokenStyle(languageCode)}''';
       {'role': 'system', 'content': _chatPrompt(languageCode)},
       ...history,
     ];
-    return _callProxy(messages: messages, temperature: 0.6, maxTokens: 300, language: languageCode);
+    return _callProxy(
+        messages: messages,
+        temperature: 0.6,
+        maxTokens: 300,
+        language: languageCode);
   }
 }
 
