@@ -14,7 +14,6 @@ import 'screens/gate/gate_screen.dart';
 import 'screens/health/health_dashboard_screen.dart';
 import 'screens/history/history_screen.dart';
 import 'screens/home_ai/home_ai_screen.dart';
-import 'screens/settings/language_screen.dart';
 import 'screens/market/marketplace_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/settings/profile_screen.dart';
@@ -118,8 +117,6 @@ class KultivIaApp extends StatelessWidget {
           '/auth': (_) => const AuthScreen(),
           // Configuration initiale — TODO: à assigner
           '/setup': (_) => const SetupScreen(),
-          // Choix de la langue — TODO: à assigner
-          '/language': (_) => const LanguageScreen(),
           // Conversation principale avec l'IA — TODO: à assigner
           '/home': (_) => const HomeAiScreen(),
           // Historique des diagnostics — TODO: à assigner

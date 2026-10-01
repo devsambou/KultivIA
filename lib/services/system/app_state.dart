@@ -21,34 +21,54 @@ class AppState extends ChangeNotifier {
   String get languageCode => settings.languageCode;
   bool get voiceReplies => settings.voiceReplies;
 
+  /// Change la langue de l'interface et de l'avatar, et la persiste dans le profil
+  /// si un profil est chargé.
   void setLanguage(String code) {
-    throw UnimplementedError();
+    settings.setLanguage(code);
+    final p = profile;
+    if (p != null && p.languageCode != code) {
+      profile = p.copyWith(languageCode: code);
+    }
+    notifyListeners();
   }
 
   void setVoiceReplies(bool on) {
-    throw UnimplementedError();
+    settings.setVoiceReplies(on);
+    final p = profile;
+    if (p != null && p.voiceReplies != on) {
+      profile = p.copyWith(voiceReplies: on);
+    }
+    notifyListeners();
   }
 
   void setProfile(UserProfile p) {
-    throw UnimplementedError();
+    profile = p;
+    settings.applyFromProfile(p);
+    notifyListeners();
   }
 
   List<Diagnosis> get historyList => history.history;
 
   void addDiagnosis(Diagnosis d) {
-    throw UnimplementedError();
+    history.addDiagnosis(d);
+    notifyListeners();
   }
 
   void bindHistory() {
-    throw UnimplementedError();
+    history.bindHistory();
+    notifyListeners();
   }
 
-  Future<void> clear() {
-    throw UnimplementedError();
+  Future<void> clear() async {
+    profile = null;
+    history.clear();
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    throw UnimplementedError();
+    settings.dispose();
+    history.dispose();
+    super.dispose();
   }
 }
