@@ -2,14 +2,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/conversation.dart';
+import '../services/data/conversation_history.dart';
 import '../services/system/app_state.dart';
 import '../services/auth/firebase_service.dart';
 
-/// Menu latéral : donne accès à tous les écrans depuis la conversation.
+/// Nombre de conversations listées dans le tiroir.
+///
+/// Au-delà, il faudrait un écran dédié ; six entrées suffisent à retrouver un
+/// échange récent sans transformer le tiroir en annuaire.
+const int _maxListedConversations = 6;
+
+/// Menu latéral : donne accès à tous les écrans depuis la conversation, et
+/// permet de rouvrir une discussion passée.
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key, required this.onNewChat});
+  const AppDrawer({super.key, required this.onNewChat, this.onOpenConversation});
 
   final VoidCallback onNewChat;
+
+  /// `null` quand l'historique des discussions n'est pas câblé : la section est
+  /// alors simplement absente, le reste du tiroir fonctionne pareil.
+  final ValueChanged<Conversation>? onOpenConversation;
 
   void _go(BuildContext context, String route) {
     Navigator.pop(context);
@@ -22,6 +35,79 @@ class AppDrawer extends StatelessWidget {
       title: Text(label),
       onTap: () => _go(context, route),
     );
+  }
+
+  /// Libellé temporel court : « Aujourd'hui 14 h », « Hier », « il y a 4 jours »…
+  ///
+  /// Une date dans le futur (décalage d'horloge entre le téléphone et le
+  /// serveur) retombe sur la date chiffrée plutôt que d'afficher « il y a
+  /// -1 jours ».
+  static String _when(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(date.year, date.month, date.day);
+    final days = today.difference(day).inDays;
+
+    if (days == 0) {
+      final h = date.hour.toString().padLeft(2, '0');
+      final m = date.minute.toString().padLeft(2, '0');
+      return "Aujourd'hui $h:$m";
+    }
+    if (days == 1) return 'Hier';
+    if (days > 1 && days < 7) return 'Il y a $days jours';
+
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  /// Les discussions récentes, à réouvrir en un geste.
+  ///
+  /// Renvoie une liste vide quand aucune n'existe ou que l'historique n'est pas
+  /// câblé : le tiroir affiche alors exactement ce qu'il affichait avant.
+  List<Widget> _conversationTiles(BuildContext context) {
+    final open = onOpenConversation;
+    if (open == null) return const [];
+
+    final history = context.watch<ConversationHistory>();
+    final recent = history.conversations.take(_maxListedConversations).toList();
+
+    if (recent.isEmpty) return const [];
+
+    final cs = Theme.of(context).colorScheme;
+
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+        child: Text(
+          'DISCUSSIONS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+      ),
+      for (final conversation in recent)
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.forum_outlined, size: 20),
+          title: Text(
+            // `displayTitle` et non `title` : une conversation enregistrée
+            // avant son premier message n'a pas encore de titre, et le tiroir
+            // afficherait une ligne vide à la place.
+            conversation.displayTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14),
+          ),
+          subtitle: Text(_when(conversation.updatedAt), style: const TextStyle(fontSize: 12)),
+          onTap: () {
+            Navigator.pop(context);
+            open(conversation);
+          },
+        ),
+      const Divider(),
+    ];
   }
 
   @override
@@ -113,7 +199,8 @@ class AppDrawer extends StatelessWidget {
                     onNewChat();
                   },
                 ),
-                _item(context, Icons.history, 'Historique', '/history'),
+                ..._conversationTiles(context),
+                _item(context, Icons.history, 'Historique des diagnostics', '/history'),
                 _item(context, Icons.health_and_safety_outlined,
                     'Santé exploitation', '/health-dashboard'),
                 _item(context, Icons.cloud_outlined, 'Alertes météo', '/weather'),

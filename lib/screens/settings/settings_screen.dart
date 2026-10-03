@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/system/app_state.dart';
 import '../../services/auth/firebase_service.dart';
 import '../../services/system/notification_service.dart';
@@ -28,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final notif = context.read<NotificationService>();
     final profile = app.profile;
     final uid = fb.currentUser?.uid;
+    final l10n = AppLocalizations.of(context)!;
     if (profile == null || uid == null) return;
 
     setState(() => _busy = true);
@@ -38,11 +40,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await fb.saveProfile(updated);
       app.setProfile(updated);
       if (on && !enabled) {
-        _toast('Autorisez les notifications dans les réglages du téléphone.');
+        _toast(l10n.notificationsPermission);
       }
     } catch (e) {
       debugPrint('Changement de notifications impossible : $e');
-      _toast('Impossible de modifier ce réglage pour le moment.');
+      _toast(l10n.notificationsEnableError);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -55,22 +57,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
     final profile = app.profile;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Paramètres')),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         padding: const EdgeInsets.all(KSpace.lg),
         children: [
           // Langues (pliable)
           ExpansionTile(
             leading: const Icon(Icons.language_outlined),
-            title: const Text('Langues'),
+            title: Text(l10n.language),
             initiallyExpanded: true,
             children: [
               // Langue de l'application (FR/EN seulement)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text('Langue de l\'application', style: Theme.of(context).textTheme.titleSmall),
+                child: Text(l10n.appLanguage, style: Theme.of(context).textTheme.titleSmall),
               ),
               for (final e in _uiLanguages.entries)
                 KCard(
@@ -95,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Langue de l'assistant IA (toutes les langues)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text('Langue de l\'assistant IA', style: Theme.of(context).textTheme.titleSmall),
+                child: Text(l10n.aiLanguage, style: Theme.of(context).textTheme.titleSmall),
               ),
               for (final e in UserSettings.supportedLanguages.entries)
                 KCard(
@@ -104,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: Text(e.value),
                     secondary: IconButton(
                       icon: const Icon(Icons.volume_up_outlined),
-                      tooltip: 'Écouter',
+                      tooltip: l10n.listenAdvice,
                       onPressed: () => VoiceService().speak(
                         VoiceService.greetings[e.key] ?? '',
                         languageCode: e.key,
@@ -130,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Apparence (pliable)
           ExpansionTile(
             leading: const Icon(Icons.palette_outlined),
-            title: const Text('Apparence'),
+            title: Text(l10n.appearance),
             initiallyExpanded: true,
             children: [
               KCard(
@@ -138,8 +141,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     RadioListTile<ThemeMode>(
-                      title: const Text('Clair'),
-                      subtitle: const Text('Toujours utiliser le thème clair'),
+                      title: Text(l10n.themeLight),
+                      subtitle: Text(l10n.themeLightDesc),
                       value: ThemeMode.light,
                       groupValue: app.themeMode,
                       onChanged: (v) {
@@ -153,8 +156,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                     RadioListTile<ThemeMode>(
-                      title: const Text('Sombre'),
-                      subtitle: const Text('Toujours utiliser le thème sombre'),
+                      title: Text(l10n.themeDark),
+                      subtitle: Text(l10n.themeDarkDesc),
                       value: ThemeMode.dark,
                       groupValue: app.themeMode,
                       onChanged: (v) {
@@ -168,8 +171,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                     RadioListTile<ThemeMode>(
-                      title: const Text('Système'),
-                      subtitle: const Text('Suivre le réglage du téléphone'),
+                      title: Text(l10n.themeSystem),
+                      subtitle: Text(l10n.themeSystemDesc),
                       value: ThemeMode.system,
                       groupValue: app.themeMode,
                       onChanged: (v) {
@@ -192,8 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Notifications
           SwitchListTile(
             secondary: const Icon(Icons.notifications_outlined),
-            title: const Text('Notifications'),
-            subtitle: const Text('Alertes météo et signalements'),
+            title: Text(l10n.notifications),
+            subtitle: Text(l10n.notificationsDesc),
             value: profile?.notificationsEnabled ?? false,
             onChanged: _busy || profile == null ? null : _toggleNotifications,
           ),
@@ -202,8 +205,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Voix
           SwitchListTile(
             secondary: const Icon(Icons.volume_up_outlined),
-            title: const Text('Écouter les réponses'),
-            subtitle: const Text("L'assistant vous parle à voix haute"),
+            title: Text(l10n.voiceReplies),
+            subtitle: Text(l10n.voiceRepliesDesc),
             value: profile?.voiceReplies ?? false,
             onChanged: (on) {
               if (profile != null) {

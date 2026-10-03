@@ -1,0 +1,13 @@
+{
+  "name": "kultivia-tools",
+  "private": true,
+  "type": "module",
+  "description": "Scripts d'exploitation : backfill Firestore → Supabase, vérifications.",
+  "scripts": {
+    "backfill": "node backfill.mjs",
+    "verif": "node verif-sync.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}

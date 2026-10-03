@@ -4,9 +4,11 @@
  * Cette fonction garde la clé API RodiumAI côté serveur (dans un secret Firebase)
  * et relaie les requêtes de l'app Flutter vers l'API RodiumAI.
  *
- * Variables d'environnement (optionnelles, dans functions/.env) :
+ * Variables d'environnement (dans functions/.env) :
  *   RODIUMAI_BASE_URL : URL de base de l'API (défaut : https://api.rodiumai.io/v1)
- *   RODIUMAI_CHAT_MODEL : modèle à utiliser (défaut : auto)
+ *   RODIUMAI_CHAT_MODEL : modèle principal (défaut : google/gemini-2.5-flash)
+ *   RODIUMAI_CHAT_MODEL_FALLBACK : modèle de repli quand le principal échoue
+ *     (défaut : anthropic/claude-haiku-4-5-20251001)
  *
  * Secret (à configurer une fois) :
  *   firebase functions:secrets:set RODIUMAI_API_KEY
@@ -16,7 +18,28 @@
 // et n'est pas interceptable par les tests, qui mockent global.fetch).
 const functions = require('firebase-functions');
 
+/**
+ * Options de déploiement.
+ *
+ * Firebase Secrets exige le plan Blaze. Sur le plan gratuit (Spark), la clé
+ * est simplement lue depuis functions/.env, chargé automatiquement par le
+ * SDK juste après ce require. On ne déclare donc le secret que s'il est
+ * réellement disponible : sinon le déploiement échoue au démarrage de la
+ * fonction.
+ *
+ * À basculer sur `secrets` dès que le plan Blaze est actif.
+ */
+const CALL_OPTIONS = process.env.RODIUMAI_API_KEY
+  ? { timeoutSeconds: 60, memory: '512MB' }
+  : {
+      secrets: ['RODIUMAI_API_KEY'],
+      timeoutSeconds: 60,
+      memory: '512MB',
+    };
+
 const DEFAULT_BASE_URL = 'https://api.rodiumai.io/v1';
+const DEFAULT_CHAT_MODEL = 'google/gemini-2.5-flash';
+const DEFAULT_FALLBACK_MODEL = 'anthropic/claude-haiku-4-5-20251001';
 const MAX_MESSAGES = 20;
 
 // Lu à chaque appel, et non au chargement du module : les variables
@@ -93,30 +116,51 @@ async function handleAiProxy(data, context) {
     }
   }
 
-  // Appel à l'API RodiumAI
-  try {
-    const response = await fetch(getChatUrl(), {
+  // Modèles : le principal, et un repli utilisé uniquement en cas d'échec.
+  const primaryModel = process.env.RODIUMAI_CHAT_MODEL || DEFAULT_CHAT_MODEL;
+  const fallbackModel =
+    process.env.RODIUMAI_CHAT_MODEL_FALLBACK || DEFAULT_FALLBACK_MODEL;
+
+  const payload = {
+    messages,
+    temperature: temp,
+    max_tokens: tokens,
+    ...(language ? { language: String(language).slice(0, 8) } : {}),
+  };
+
+  // Jamais le contenu des messages ni les images dans les journaux.
+  async function callModel(model) {
+    return fetch(getChatUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: process.env.RODIUMAI_CHAT_MODEL || 'auto',
-        messages,
-        temperature: temp,
-        max_tokens: tokens,
-        ...(language ? { language: String(language).slice(0, 8) } : {}),
-      }),
+      body: JSON.stringify({ ...payload, model }),
     });
+  }
+
+  try {
+    let response = await callModel(primaryModel);
+
+    // Le repli ne se déclenche que si le modèle principal échoue et que
+    // ce n'est pas déjà le modèle de repli.
+    if (!response.ok && fallbackModel !== primaryModel) {
+      console.warn(
+        `RodiumAI ${response.status} sur ${primaryModel}, `
+        + `tentative avec ${fallbackModel}.`,
+      );
+
+      response = await callModel(fallbackModel);
+    }
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error(`RodiumAI ${response.status}: ${errText}`);
+      console.error(`RodiumAI ${response.status} après repli.`);
       throw new functions.https.HttpsError('internal', 'Service IA indisponible.');
     }
 
     const json = await response.json();
+
     return { content: json.choices?.[0]?.message?.content ?? '' };
   } catch (error) {
     if (error instanceof functions.https.HttpsError) {
@@ -129,7 +173,4 @@ async function handleAiProxy(data, context) {
 
 exports.handleAiProxy = handleAiProxy;
 
-exports.aiProxy = functions.https.onCall(
-  { secrets: ['RODIUMAI_API_KEY'], timeoutSeconds: 60, memory: '512MB' },
-  handleAiProxy,
-);
+exports.aiProxy = functions.https.onCall(CALL_OPTIONS, handleAiProxy);

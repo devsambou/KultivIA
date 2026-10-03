@@ -337,9 +337,11 @@ test('aiProxy utilise RODIUMAI_CHAT_MODEL', async () => {
   }
 });
 
-test('aiProxy utilise le modèle par défaut si non configuré', async () => {
+test('aiProxy utilise Gemini Flash par défaut si non configuré', async () => {
   process.env.RODIUMAI_API_KEY = 'test-key';
   process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
+  delete process.env.RODIUMAI_CHAT_MODEL;
+  delete process.env.RODIUMAI_CHAT_MODEL_FALLBACK;
 
   const originalFetch = global.fetch;
 
@@ -367,7 +369,58 @@ test('aiProxy utilise le modèle par défaut si non configuré', async () => {
       authenticatedContext(),
     );
 
-    assert.equal(requestBody.model, 'auto');
+    // Jamais 'auto' : le modèle doit être explicite et reproductible.
+    assert.equal(requestBody.model, 'google/gemini-2.5-flash');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('aiProxy bascule sur le modèle de repli si le principal échoue', async () => {
+  process.env.RODIUMAI_API_KEY = 'test-key';
+  process.env.RODIUMAI_BASE_URL = 'https://example.test/v1';
+  process.env.RODIUMAI_CHAT_MODEL = 'google/gemini-2.5-flash';
+  process.env.RODIUMAI_CHAT_MODEL_FALLBACK =
+    'anthropic/claude-haiku-4-5-20251001';
+
+  const originalFetch = global.fetch;
+
+  const modelsUsed = [];
+
+  global.fetch = async (_url, options) => {
+    const model = JSON.parse(options.body).model;
+
+    modelsUsed.push(model);
+
+    if (model === 'google/gemini-2.5-flash') {
+      return new Response('SECRET_PROVIDER_ERROR', { status: 500 });
+    }
+
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: 'Repli' } }] }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  };
+
+  try {
+    const result = await handleAiProxy(
+      {
+        messages: [{ role: 'user', content: 'Bonjour' }],
+      },
+      authenticatedContext(),
+    );
+
+    assert.deepEqual(modelsUsed, [
+      'google/gemini-2.5-flash',
+      'anthropic/claude-haiku-4-5-20251001',
+    ]);
+
+    assert.equal(result.content, 'Repli');
   } finally {
     global.fetch = originalFetch;
   }

@@ -1,0 +1,38 @@
+# Configuration Supabase de KultivIA.
+# Documentation : https://supabase.com/docs/guides/cli/config
+
+project_id = "hyvhwsclfjnnbrpdsypt"
+
+# Les trois fonctions IAIdentiquent elles-mêmes l'utilisateur via
+# requireUser() (supabase/functions/_shared/rodium.ts), qui lit le header
+# Authorization et valide le token auprès de /auth/v1/user.
+#
+# Pourquoi verify_jwt = false ? L'app supporte DEUX fournisseurs
+# d'authentification (supabase ET firebase, voir PROVIDER_PRIORITY dans .env).
+# Un utilisateur connecté via Firebase n'a pas de session Supabase : la
+# vérification automatique de la passerelle le rejetterait à tort.
+#
+# La sécurité reste intacte : sans token valide, requireUser() renvoie 401
+# avant tout appel à RodiumAI. La clé n'est jamais atteignable.
+[functions.ai-proxy]
+verify_jwt = false
+
+[functions.ai-speech]
+verify_jwt = false
+
+[functions.ai-transcribe]
+verify_jwt = false
+
+# Meme raison que les trois fonctions IA : sync-write identifie l'utilisateur
+# lui-meme via requireUser(), qui lit le header Authorization et accepte un
+# jeton Firebase comme un jeton Supabase.
+#
+# Sans cette ligne, verify_jwt vaut TRUE par defaut : la passerelle rejette
+# le jeton Firebase avant meme que la fonction ne demarre, et le miroir
+# echoue systematiquement en 401. C'est ce que faisait l'application en
+# production (journal : « Miroir Supabase ignore (diagnosis) : HTTP 401 »).
+#
+# Le backfill, lui, fonctionnait : il utilise la cle service_role, qui
+# contourne la verification de la passerelle.
+[functions.sync-write]
+verify_jwt = false

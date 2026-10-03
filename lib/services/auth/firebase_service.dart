@@ -6,14 +6,26 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import 'dart:async';
+
 import '../../models/diagnosis.dart';
 import '../../models/user_profile.dart';
+import '../sync/supabase_mirror.dart';
 
 /// Regroupe l'authentification Firebase et la persistance Firestore.
 class FirebaseService {
-  FirebaseService({FirebaseAuth? auth, FirebaseFirestore? firestore})
-      : _authOverride = auth,
+  FirebaseService({
+    FirebaseAuth? auth,
+    FirebaseFirestore? firestore,
+    this.mirror,
+  })  : _authOverride = auth,
         _firestoreOverride = firestore;
+
+  /// Réplica Supabase. Null = aucune réplication, comportement historique.
+  ///
+  /// Injecté plutôt qu'instancié ici pour que le test puisse passer un double
+  /// qui échoue, et pour que le dépôt reste testable sans réseau.
+  final SupabaseMirror? mirror;
 
   final FirebaseAuth? _authOverride;
   final FirebaseFirestore? _firestoreOverride;
@@ -152,6 +164,14 @@ class FirebaseService {
     return UserProfile.fromJson(profileData);
   }
 
+  /// Point de sortie unique des écritures de profil.
+  ///
+  /// Les huit écrans qui modifient le profil (onboarding, réglages, photo,
+  /// langue, thème...) passent tous par ici. C'est ce qui permet de répliquer
+  /// vers Supabase en un seul endroit, sans toucher un seul écran.
+  ///
+  /// Firestore d'abord, réplique ensuite : la réplication est déclenchée après
+  /// l'écriture confirmée, et son échec est absorbé par [SupabaseMirror].
   Future<void> saveProfile(UserProfile profile) async {
     if (!isReady) {
       throw Exception('Firebase non initialisé. Exécutez: flutterfire configure');
@@ -160,11 +180,21 @@ class FirebaseService {
     if (uid == null) throw Exception('Utilisateur non connecté');
     
     // S'assurer que photoUrl est inclus depuis Firebase Auth si non fourni
-    final profileWithPhoto = profile.photoUrl != null 
-        ? profile 
+    final profileWithPhoto = profile.photoUrl != null
+        ? profile
         : profile.copyWith(photoUrl: currentUser?.photoURL);
-    
-    await _userDoc(uid).set(profileWithPhoto.toJson());
+
+    // Une seule sérialisation : Firestore et le réplica doivent porter le même
+    // `updatedAt`, sinon la règle last-write-wins arbitrerait sur une valeur
+    // différente de celle de la source.
+    final data = profileWithPhoto.toMap();
+
+    await _userDoc(uid).set(data);
+
+    if (mirror != null) {
+      // `unawaited` : l'utilisateur n'a pas à attendre la copie Supabase.
+      unawaited(mirror!.mirrorUser(data));
+    }
   }
 
   CollectionReference<Map<String, dynamic>> _diagnosesCol(String uid) =>

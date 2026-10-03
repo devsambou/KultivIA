@@ -1,4 +1,38 @@
+/**
+ * Cloud Function aiTranscribe : reconnaissance vocale (audio -> texte) via RodiumAI.
+ *
+ * Utilisée pour les langues que le téléphone ne sait pas écouter
+ * (wolof, lingala). Pour le français et l'anglais, l'app utilise
+ * le moteur natif et n'appelle jamais cette fonction.
+ *
+ * Variables d'environnement (dans functions/.env) :
+ *   RODIUMAI_BASE_URL  : URL de base de l'API RodiumAI
+ *   RODIUMAI_STT_MODEL : modèle de transcription
+ *
+ * Secret (à configurer une fois) :
+ *   firebase functions:secrets:set RODIUMAI_API_KEY
+ */
+
 const functions = require('firebase-functions');
+
+/**
+ * Options de déploiement.
+ *
+ * Firebase Secrets exige le plan Blaze. Sur le plan gratuit (Spark), la clé
+ * est simplement lue depuis functions/.env, chargé automatiquement par le
+ * SDK juste après ce require. On ne déclare donc le secret que s'il est
+ * réellement disponible : sinon le déploiement échoue au démarrage de la
+ * fonction.
+ *
+ * À basculer sur `secrets` dès que le plan Blaze est actif.
+ */
+const CALL_OPTIONS = process.env.RODIUMAI_API_KEY
+  ? { timeoutSeconds: 60, memory: '512MB' }
+  : {
+      secrets: ['RODIUMAI_API_KEY'],
+      timeoutSeconds: 60,
+      memory: '512MB',
+    };
 
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
 const TIMEOUT_MS = 45_000;
@@ -218,3 +252,8 @@ async function handleAiTranscribe(data, context) {
 exports.handleAiTranscribe = handleAiTranscribe;
 exports.PROMPT_ONLY_LANGUAGES = PROMPT_ONLY_LANGUAGES;
 exports.MAX_AUDIO_BYTES = MAX_AUDIO_BYTES;
+
+exports.aiTranscribe = functions.https.onCall(
+  CALL_OPTIONS,
+  handleAiTranscribe,
+);

@@ -6,7 +6,7 @@ import 'scene_kit.dart';
 /// Un fermier scanne une plante malade, un nuage l'arrose, elle devient saine.
 /// Boucle de 10 s, aucun asset requis.
 class KultivScanScene extends StatelessWidget {
-  const KultivScanScene({super.key, this.width = 250});
+  const KultivScanScene({super.key, this.width = double.infinity});
 
   final double width;
 

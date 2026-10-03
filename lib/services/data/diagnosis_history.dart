@@ -23,12 +23,19 @@ class DiagnosisHistory extends ChangeNotifier {
   }
 
   void bindHistory() {
-    _historySub = _repository.watchDiagnoses().listen((list) {
-      _history
-        ..clear()
-        ..addAll(list);
-      notifyListeners();
-    });
+    _historySub?.cancel(); // idempotent : un double appel ne doit pas doubler les notifications
+    _historySub = _repository.watchDiagnoses().listen(
+      (list) {
+        _history
+          ..clear()
+          ..addAll(list);
+        notifyListeners();
+      },
+      // Une coupure réseau ne doit ni faire planter l'écran ni effacer ce qui
+      // est déjà affiché (issue C6) : on garde la dernière liste connue et on
+      // attend le prochain émission.
+      onError: (Object e) => debugPrint('Historique : flux interrompu ($e)'),
+    );
   }
 
   void removeDiagnosis(String diagnosisId) {

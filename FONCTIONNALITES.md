@@ -1,8 +1,10 @@
 # KultivIA - Fonctionnalites et etat d'avancement (Branche `skeleton`)
 
-*Mis a jour le 28 septembre 2026.*
+*Mis a jour le 3 octobre 2026.*
 
-> **Etat global : SQUELETTE.** Tous les fichiers `lib/` sont la, seules les **signatures publiques** (classes, champs, methodes) sont conservees. Chaque corps de methode lance `UnimplementedError()`. Les widgets renvoient un `Scaffold` minimal avec le nom de l'ecran. **Rien ne fonctionne** : c'est une base de depart pour l'equipe de 5.
+> **Etat global : FONCTIONNEL.** L'application tourne : le parcours complet (onboarding, auth, setup, conversation, diagnostic, historique) est en place, les fonctions IA et de replication sont deployees sur Supabase Edge Functions, et la suite de tests passe : **139 tests verts, 1 ignore** au 3 octobre 2026 (voir §6).
+>
+> **Attention : la colonne `Etat` ci-dessous est perimee.** Elle date du 28 septembre 2026, ou tout etait encore marque `Squelette`. Seules les lignes ajoutees depuis ont un etat a jour. Une recalibration complete ligne par ligne reste a faire.
 
 **Legende :** *Squelette* = signatures presentes, corps a implementer (voir `docs/ISSUES.md`) * *Core intact* = fondations communes (ne pas modifier sans prevenir l'equipe).
 
@@ -29,12 +31,14 @@
 | Camera declenchee par intention ("photo", "camera", "foto"...) | Squelette | `lib/services/ai/avatar_intents.dart` | #TODO |
 | Suggestions de depart | Squelette | `lib/screens/home_ai/empty_state.dart` | #TODO |
 | Nouvelle conversation | Squelette | `lib/screens/home_ai/home_ai_screen.dart` | #TODO |
+| **Historique des discussions** (persiste, restaure au lancement, liste dans le tiroir) | **Fait** | `lib/models/conversation.dart`, `lib/repositories/firebase_conversation_repository.dart`, `lib/services/data/conversation_history.dart` | Phase 2 |
+| Cartes de diagnostic rattachees a la relecture de l'echange | **Fait** | `lib/screens/home_ai/home_ai_screen.dart` | Phase 2 |
 
 ### Diagnostic
 
 | Fonctionnalite | Etat | Fichier(s) concerne(s) | Issue |
 |---|---|---|---|
-| Diagnostic par photo (Cloud Function `aiProxy`) | Squelette | `lib/services/ai/rodium_ai_service.dart` | #TODO |
+| Diagnostic par photo (Edge Function `ai-proxy`, Supabase) | Fait | `lib/services/ai/rodium_ai_service.dart`, `supabase/functions/ai-proxy/` | Phase 2 |
 | Diagnostic par texte/voix | Squelette | `lib/services/ai/rodium_ai_service.dart` | #TODO |
 | Ecran resultat (maladie, confiance, traitement, ecouter) | Squelette | `lib/screens/health/diagnosis_result_screen.dart` | #TODO |
 | Historique diagnostics (Firestore) | Squelette | `lib/screens/history/history_screen.dart`, `lib/repositories/firebase_diagnosis_repository.dart` | #TODO |
@@ -49,7 +53,7 @@
 | Reponses parlees en continu (interrupteur) | Squelette | `lib/services/system/user_settings.dart` | #TODO |
 | Choix langue a l'oreille (phrase d'accueil par langue) | Squelette | `lib/screens/settings/language_screen.dart` | #TODO |
 | FR/EN : moteurs natifs telephone | Squelette | `lib/services/ui/voice_service.dart` | #TODO |
-| **Langues locales** (Wolof, Bambara, Lingala, Malgache...) : via RodiumAI (Cloud Functions) | Squelette | `lib/services/ui/voice_service.dart`, `functions/index.js` | #TODO |
+| **Langues locales** (Wolof, Lingala) : via RodiumAI (Supabase Edge Functions) | Fait | `lib/services/ui/voice_service.dart`, `supabase/functions/ai-speech/` | Phase 2 |
 
 ### Meteo, alertes et notifications
 
@@ -111,13 +115,12 @@ Etapes par langue (wolof = exemple dans le code) :
 10. Parcourir les 13+ ecrans en clair/sombre sur vrai telephone
 
 ### Non commence
-11. Mode hors-ligne (persistance Firestore, derniers diagnostics, bandeau "hors connexion")
+11. ~~Mode hors-ligne (persistance Firestore, derniers diagnostics, bandeau "hors connexion")~~ - **fait le 3 octobre 2026** (`lib/services/system/connectivity_service.dart`, `lib/widgets/offline_banner.dart`)
 12. Interface traduite par langue (internationalisation Flutter - `intl` + arb)
 13. Voix sur autres ecrans (meteo, resultat) + notifications lues a voix haute
 14. Publication : comptes Google Play / Apple Developer
 
 ### Idees (si temps)
-- Partage diagnostic WhatsApp
 - Calendrier cultural
 - Cours du marche par produit
 - Journal de parcelle avec courbe d'evolution
@@ -129,7 +132,9 @@ Etapes par langue (wolof = exemple dans le code) :
 
 - **App pour agriculteurs** (pas inscription vendeurs) : points de vente = donnees integres
 - **Pas de SMS** : notifications push uniquement
-- **Cle IA cote serveur** : Cloud Functions `aiProxy`, `aiSpeech`, `aiTranscribe`
+- **Cle IA cote serveur** : Edge Functions Supabase `ai-proxy`, `ai-speech`, `ai-transcribe`
+  (et non plus Firebase Cloud Functions, qui exigeaient le plan Blaze - recale
+  du 3 octobre 2026, voir `ARCHITECTURE.md`)
 - **Voix** : natif FR/EN (gratuit, rapide), RodiumAI pour langues locales (cloud)
 - **Design** : esprit app Claude (fond creme, sobre) + accent vert + couleurs d'etat
 
@@ -145,6 +150,9 @@ Etapes par langue (wolof = exemple dans le code) :
 | Langues & reglages utilisateur | `lib/services/system/user_settings.dart`, `lib/services/system/app_state.dart` |
 | Meteo & alertes (Open-Meteo + regles) | `lib/services/external/weather_service.dart`, `functions/weather_rules.js` |
 | Points de vente (seed + carte + liens) | `lib/data/vendors_seed.dart`, `lib/screens/market/vendors_map_screen.dart`, `lib/services/external/vendor_links.dart` |
+| Partage WhatsApp d'un diagnostic | `lib/services/external/share_links.dart`, `lib/screens/health/diagnosis_result_screen.dart` |
+| Hors-ligne (cache Firestore + bandeau) | `lib/services/system/connectivity_service.dart`, `lib/widgets/offline_banner.dart` |
+| Historique des discussions | `lib/models/conversation.dart`, `lib/services/data/conversation_history.dart`, `lib/widgets/app_drawer.dart` |
 | Design system & composants | `lib/core/theme/theme.dart`, `lib/widgets/k_components.dart` |
 | Regles Firestore | `firestore.rules` |
 | Installation & config native | `README.md` |
@@ -154,9 +162,32 @@ Etapes par langue (wolof = exemple dans le code) :
 
 ## 6. Tests
 
-- `test/user_profile_test.dart` : **conserve** (modeles intacts)
-- Tous les autres tests : **remplaces par `skip: 'a implementer avec l'issue #TODO'`**
-- Cote serveur : `cd functions && npm test` (regles meteo)
+*Etat au 3 octobre 2026.*
+
+| Commande | Resultat |
+|---|---|
+| `flutter test` | **139 verts, 1 ignore** (le `skip` restant est `test/widget_test.dart`, placeholder d'origine) |
+| `flutter analyze` | **0 erreur**, 41 issues `info` / `warning` toutes preexistantes (`profile_screen.dart`, `setup/`, `app_exceptions.dart`) |
+
+Aucun test n'est un placeholder `skip: 'a implementer'`. Les 12 fichiers de
+`test/` sont actifs :
+
+| Fichier | Couvre |
+|---|---|
+| `test/conversation_history_test.dart` | historique des discussions (21 tests) |
+| `test/connectivity_service_test.dart` | detection du reseau et bandeau hors ligne (12 tests) |
+| `test/share_links_test.dart` | partage WhatsApp d'un diagnostic (16 tests) |
+| `test/supabase_mirror_test.dart` | la replication Supabase ne bloque ni ne fait echouer Firestore |
+| `test/rodium_ai_service_test.dart` | analyse de la reponse IA, y compris JSON tronque |
+| `test/vendor_links_test.dart` | liens vers les points de vente (tel, WhatsApp, itineraire) |
+| `test/voice_service_test.dart` | choix du moteur vocal selon la langue |
+| `test/weather_outlook_test.dart` | regles meteo |
+| `test/health_score_test.dart` | score de sante de l'exploitation |
+| `test/user_profile_test.dart` | modele de profil |
+| `test/avatar_intents_test.dart` | intentions du micro |
+| `test/widget_test.dart` | **ignore**, placeholder d'origine |
+
+Cote serveur, regles meteo : `cd functions && npm test`.
 
 ---
 

@@ -6,8 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/conversation.dart';
 import '../../models/diagnosis.dart';
+import '../../repositories/conversation_repository.dart';
 import '../../repositories/diagnosis_repository.dart';
+import '../../services/data/conversation_history.dart';
 import '../../services/system/app_state.dart';
 import '../../services/ai/avatar_intents.dart' show looksLikeCameraRequest, cameraReply;
 import '../../services/auth/firebase_service.dart';
@@ -47,6 +50,14 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
   bool _thinking = false;
   bool _listening = false;
 
+  /// Conversation en cours. `null` tant que la reprise n'a pas été tentée.
+  Conversation? _current;
+
+  /// Vrai pendant la relecture Firestore : évite d'afficher l'état d'accueil
+  /// une fraction de seconde avant de le remplacer par la conversation
+  /// précédente, ce qui ferait clignoter les suggestions.
+  bool _restoring = true;
+
   bool get _canSend => !_thinking && (_textController.text.trim().isNotEmpty || _pendingImagePath != null);
 
   @override
@@ -56,6 +67,7 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
     if (context.read<FirebaseService>().isReady) {
       _pushSub = context.read<NotificationService>().foregroundTexts.listen(_toast);
     }
+    unawaited(_restoreLastConversation());
   }
 
   @override
@@ -72,6 +84,91 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(behavior: SnackBarBehavior.floating, content: Text(msg)));
   }
 
+  // ------------------------------------------------- historique de discussion
+
+  /// Reprend la dernière conversation de l'utilisateur à l'ouverture de
+  /// l'écran. Une coupure réseau ici n'a aucune conséquence : on démarre sur
+  /// une conversation vierge, exactement comme avant.
+  Future<void> _restoreLastConversation() async {
+    Conversation? latest;
+
+    try {
+      final repo = context.read<ConversationRepository>();
+      context.read<ConversationHistory>().bind();
+      latest = await repo.loadMostRecent();
+    } catch (e) {
+      debugPrint("Reprise de la conversation impossible : $e");
+    }
+
+    if (!mounted) return;
+
+    if (latest == null || latest.turns.isEmpty) {
+      setState(() {
+        _current = Conversation.start();
+        _restoring = false;
+      });
+      return;
+    }
+
+    // `final` pour que Dart propage le type non nul jusqu'ici : la promotion
+    // disparait à l'intérieur de la closure `setState` sur une variable simple.
+    final restored = latest;
+
+    setState(() {
+      _current = restored;
+      _messages.addAll(_rehydrate(restored));
+      _restoring = false;
+    });
+    _scrollToBottom();
+  }
+
+  /// Reconstitruit les bulles à partir des tours enregistrés, en rattachant à
+  /// chaque tour le diagnostic correspondant s'il est toujours dans
+  /// l'historique. Sans ce rattachement, une conversation relue perdrait les
+  /// cartes de diagnostic — c'est-à-dire le résultat le plus utile.
+  List<ChatEntry> _rehydrate(Conversation conversation) {
+    final byId = <String, Diagnosis>{
+      for (final d in context.read<AppState>().historyList) d.id: d,
+    };
+
+    return [
+      for (final turn in conversation.turns) turn.toChatEntry(diagnosis: byId[turn.diagnosisId]),
+    ];
+  }
+
+  /// Ouvre une conversation du tiroir. L'écran n'en montrait qu'une à la fois :
+  /// celle-ci la remplace, et l'utilisateur peut revenir avec le tiroir.
+  void _openConversation(Conversation conversation) {
+    _voice.stopSpeaking();
+    _textController.clear();
+
+    setState(() {
+      _current = conversation;
+      _messages
+        ..clear()
+        ..addAll(_rehydrate(conversation));
+      _pendingImagePath = null;
+      _thinking = false;
+    });
+
+    _scrollToBottom();
+  }
+
+  /// Enregistre l'échange courant dans Firestore.
+  ///
+  /// Appelé **après** chaque réponse de l'avatar, donc une écriture par
+  /// échange et jamais à chaque frappe. L'écriture est déléguée à
+  /// [ConversationHistory.save], qui ne lève pas : un échec réseau n'interrompt
+  /// jamais la conversation en cours.
+  void _persist() {
+    if (!mounted) return;
+
+    final conversation = (_current ?? Conversation.start()).withEntries(_messages);
+    _current = conversation;
+
+    unawaited(context.read<ConversationHistory>().save(conversation));
+  }
+
   // ---------------------------------------------------------------- actions
 
   void _newChat() {
@@ -80,6 +177,7 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
     setState(() {
       _messages.clear();
       _pendingImagePath = null;
+      _current = Conversation.start();
     });
   }
 
@@ -187,6 +285,7 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
         _messages.add(ChatEntry(fromUser: true, text: text));
         _messages.add(ChatEntry(fromUser: false, text: reply));
       });
+      _persist();
       _scrollToBottom();
       _maybeSpeak(reply, viaVoice: viaVoice);
       await _pick(ImageSource.camera);
@@ -231,11 +330,13 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
             diagnosis: identified ? diagnosis : null,
           ));
         });
+        _persist();
         _maybeSpeak(avatarText, viaVoice: viaVoice);
       } else {
         final reply = await ai.chatWithAvatar(history: _history(), languageCode: lang);
         if (!mounted) return;
         setState(() => _messages.add(ChatEntry(fromUser: false, text: reply)));
+        _persist();
         _maybeSpeak(reply, viaVoice: viaVoice);
       }
     } catch (e) {
@@ -284,7 +385,7 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
     final voiceReplies = context.watch<AppState>().voiceReplies;
 
     return Scaffold(
-      drawer: AppDrawer(onNewChat: _newChat),
+      drawer: AppDrawer(onNewChat: _newChat, onOpenConversation: _openConversation),
       appBar: AppBar(
         title: const Text('KultivIA', style: TextStyle(fontWeight: FontWeight.w600)),
         actions: [
@@ -296,14 +397,16 @@ class _HomeAiScreenState extends State<HomeAiScreen> {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Nouvelle conversation',
-            onPressed: _messages.isEmpty ? null : _newChat,
+            onPressed: _restoring || _messages.isEmpty ? null : _newChat,
           ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty
+            child: _restoring
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
                 ? EmptyState(
               name: name,
               listening: _listening,

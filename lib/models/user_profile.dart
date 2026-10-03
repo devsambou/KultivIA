@@ -104,6 +104,13 @@ class UserProfile {
     );
   }
 
+  /// Sérialisation vers Firestore.
+  ///
+  /// `updatedAt` n'est pas un champ du modèle : c'est l'instant de l'écriture,
+  /// pas une propriété du profil. Il est indispensable à la réplication
+  /// Supabase, où deux écritures concurrentes sont arbitrées par last-write-wins
+  /// : sans cet horodatage, la plus récente gagnerait au hasard selon l'ordre
+  /// d'arrivée réseau. Voir plans/double-ecriture-supabase.md.
   Map<String, dynamic> toMap() => {
         'displayName': displayName,
         'photoUrl': photoUrl,
@@ -118,6 +125,7 @@ class UserProfile {
         'phoneNumber': phoneNumber,
         'phoneCountryCode': phoneCountryCode,
         'profileCompleted': completed,
+        'updatedAt': DateTime.now().toUtc().toIso8601String(),
       };
 
   factory UserProfile.fromMap(Map<String, dynamic> m) {

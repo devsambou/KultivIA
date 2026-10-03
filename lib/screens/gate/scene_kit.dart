@@ -229,7 +229,7 @@ class SceneView extends StatefulWidget {
     super.key,
     required this.duration,
     required this.draw,
-    this.width = 250,
+    this.width = double.infinity,
     this.semanticLabel,
   });
 
@@ -263,18 +263,8 @@ class _SceneViewState extends State<SceneView> with SingleTickerProviderStateMix
           width: widget.width,
           child: AspectRatio(
             aspectRatio: 240 / 170,
-            child: Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: .5,
-                ),
-              ),
-              child: CustomPaint(
-                painter: _ScenePainter(_c, widget.duration, pal, widget.draw),
-              ),
+            child: CustomPaint(
+              painter: _ScenePainter(_c, widget.duration, pal, widget.draw),
             ),
           ),
         ),

@@ -1,5 +1,11 @@
 # Secrets — ne jamais committer
 .env
+functions/.env
+supabase/.env
+supabase/.temp
+.env.*
+!.env.example
+apikey-rodium.txt
 # Flutter / Dart
 .dart_tool/
 .flutter-plugins
@@ -16,6 +22,20 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 firebase-debug.log
 
+# Comptes de service : accès admin complet au projet Firebase.
+# Utilisés par tools/backfill.mjs. Ne jamais committer.
+*service-account*.json
+*serviceAccount*.json
+serviceAccountKey.json
+
+# Secrets d'exploitation lus automatiquement par tools/*.mjs.
+# Le dossier entier est ignoré : y déposer les clés est sans risque de commit.
+tools/secrets/
+
 # OS
 .DS_Store
 node_modules/
+
+# Supabase CLI
+.branches
+.temp

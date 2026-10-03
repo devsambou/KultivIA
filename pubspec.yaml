@@ -56,6 +56,11 @@ dependencies:
   # Stockage Firebase (photos de profil)
   firebase_storage: ^12.3.0
 
+  # Détection du réseau pour le bandeau hors-ligne (issue C6).
+  # Déclare lui-même ACCESS_NETWORK_STATE : rien à ajouter dans
+  # android/app/src/main/AndroidManifest.xml.
+  connectivity_plus: ^7.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

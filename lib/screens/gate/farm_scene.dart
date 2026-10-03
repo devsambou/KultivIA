@@ -8,7 +8,7 @@ import 'scene_kit.dart';
 /// la pluie la soigne, puis il repart. Pendant ce temps, une agricultrice
 /// sème dans un sillon et les pousses sortent au fil de la boucle (12 s).
 class KultivFarmScene extends StatelessWidget {
-  const KultivFarmScene({super.key, this.width = 250});
+  const KultivFarmScene({super.key, this.width = double.infinity});
 
   final double width;
 

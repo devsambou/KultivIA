@@ -1,4 +1,40 @@
+/**
+ * Cloud Function aiSpeech : synthèse vocale (texte -> audio mp3) via RodiumAI.
+ *
+ * Utilisée pour les langues que le téléphone ne sait pas parler
+ * (wolof, lingala). Pour le français et l anglais, l'app utilise
+ * le moteur natif et n'appelle jamais cette fonction.
+ *
+ * Variables d'environnement (dans functions/.env) :
+ *   RODIUMAI_BASE_URL    : URL de base de l'API RodiumAI
+ *   RODIUMAI_TTS_MODEL   : modèle TTS par défaut
+ *   RODIUMAI_TTS_MODEL_<CODE> : modèle dédié à une langue (ex. _WO, _LN)
+ *   RODIUMAI_TTS_VOICE   : voix à utiliser
+ *
+ * Secret (à configurer une fois) :
+ *   firebase functions:secrets:set RODIUMAI_API_KEY
+ */
+
 const functions = require('firebase-functions');
+
+/**
+ * Options de déploiement.
+ *
+ * Firebase Secrets exige le plan Blaze. Sur le plan gratuit (Spark), la clé
+ * est simplement lue depuis functions/.env, chargé automatiquement par le
+ * SDK juste après ce require. On ne déclare donc le secret que s'il est
+ * réellement disponible : sinon le déploiement échoue au démarrage de la
+ * fonction.
+ *
+ * À basculer sur `secrets` dès que le plan Blaze est actif.
+ */
+const CALL_OPTIONS = process.env.RODIUMAI_API_KEY
+  ? { timeoutSeconds: 60, memory: '512MB' }
+  : {
+      secrets: ['RODIUMAI_API_KEY'],
+      timeoutSeconds: 60,
+      memory: '512MB',
+    };
 
 const MAX_SPEECH_CHARS = 600;
 const TIMEOUT_MS = 45_000;
@@ -129,3 +165,5 @@ async function handleAiSpeech(data, context) {
 
 exports.handleAiSpeech = handleAiSpeech;
 exports.MAX_SPEECH_CHARS = MAX_SPEECH_CHARS;
+
+exports.aiSpeech = functions.https.onCall(CALL_OPTIONS, handleAiSpeech);

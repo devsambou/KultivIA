@@ -4,7 +4,16 @@
 
 ## Note sur l'authentification
 
-Le projet supporte désormais **Firebase ET Supabase** comme providers d'authentification et de base de données. Les services correspondants (`FirebaseService` et `SupabaseService`) sont disponibles dans `lib/services/auth/`. Les credentials sont stockés dans le fichier `.env` (non commité).
+**Firebase est la seule source d'identité.** Les utilisateurs se connectent avec Firebase Auth, et tous les jetons de l'application sont des jetons Firebase.
+
+Supabase (Postgres) est utilisé comme **réplique en lecture-écriture** de deux
+collections Firestore, `users` et `diagnoses` : chaque écriture Firestore est
+copiée par l'Edge Function `sync-write`, qui vérifie lui-même le jeton Firebase.
+Aucune lecture de l'application ne va vers Supabase. Voir
+[ARCHITECTURE.md](../ARCHITECTURE.md) pour le détail des règles de conflit.
+
+`lib/services/auth/supabase_service.dart` existe mais n'est appelé par aucun
+écran : il ne fait pas partie du chemin actif.
 
 ## Comment ça évite les conflits
 
@@ -18,9 +27,9 @@ Les ajouts de langues passent par un fichier par langue (issue D6) : c'est ce qu
 
 | Lot | Fichiers dont il est le seul propriétaire |
 |-----|-------------------------------------------|
-| A | pubspec.yaml, pubspec.lock, android/, ios/, firebase.json, .firebaserc, firestore.rules, firestore.indexes.json, functions/package.json, functions/index.js, lib/main.dart, lib/firebase_options.dart, lib/services/auth/, lib/screens/auth/, lib/screens/gate/, lib/screens/onboarding/, test/widget_test.dart, README.md, .github/ |
+| A | pubspec.yaml, pubspec.lock, android/, ios/, firebase.json, .firebaserc, firestore.rules, firestore.indexes.json, functions/package.json, functions/index.js, lib/main.dart, lib/firebase_options.dart, lib/services/auth/, lib/screens/auth/, lib/screens/gate/, lib/screens/onboarding/, lib/repositories/conversation_repository.dart, lib/repositories/firebase_conversation_repository.dart, test/widget_test.dart, README.md, .github/ |
 | B | lib/services/ai/, lib/screens/home_ai/, lib/screens/health/diagnosis_result_screen.dart, functions/src/aiProxy.js, test/rodium_ai_service_test.dart, test/avatar_intents_test.dart |
-| C | lib/services/system/app_state.dart, lib/services/system/user_settings.dart, lib/services/system/connectivity_service.dart, lib/services/data/, lib/repositories/firebase_diagnosis_repository.dart, lib/screens/setup/, lib/screens/settings/, lib/screens/history/, lib/screens/health/health_dashboard_screen.dart, lib/widgets/app_drawer.dart, lib/widgets/offline_banner.dart, test/user_profile_test.dart, test/health_score_test.dart |
+| C | lib/services/system/app_state.dart, lib/services/system/user_settings.dart, lib/services/system/connectivity_service.dart, lib/services/data/, lib/repositories/firebase_diagnosis_repository.dart, lib/screens/setup/, lib/screens/settings/, lib/screens/history/, lib/screens/health/health_dashboard_screen.dart, lib/widgets/app_drawer.dart, lib/widgets/offline_banner.dart, test/user_profile_test.dart, test/health_score_test.dart, test/conversation_history_test.dart |
 | D | lib/services/ui/voice_service.dart, lib/screens/market/marketplace_screen.dart, lib/screens/community/, lib/languages/, lib/l10n/, functions/src/aiSpeech.js, functions/src/aiTranscribe.js, functions/src/notifyReport.js, test/voice_service_test.dart |
 | E | lib/services/external/, lib/services/system/notification_service.dart, lib/screens/weather/, lib/screens/market/vendors_map_screen.dart, lib/data/vendors_seed.dart, functions/src/weatherAlerts.js, functions/src/weatherRules.js, test/weather_outlook_test.dart, test/vendor_links_test.dart |
 
@@ -31,6 +40,67 @@ Les ajouts de langues passent par un fichier par langue (issue D6) : c'est ce qu
 - **Phase 0**, d'abord, une seule personne (lot A) : A1, A2, A3, A4. Tant que ce n'est pas fait, personne ne peut lancer l'app, mais tout le monde peut déjà écrire son code contre les stubs.
 - **Phase 1**, tous en parallèle : chaque lot travaille dans ses fichiers. Gros chemins critiques : B1 → B3, C1 → C2/C3/C4, E3 → E4/D4, D1 → D2.
 - **Phase 2**, finitions : mode hors-ligne (C6), registre de langues (D6), traduction (D7), langues (F1), validations (D8, E7), recette (G1), publication (G2).
+
+## Point d'étape phase 2 - 3 octobre 2026
+
+Où en est la phase 2, et ce qui a été fait en dehors des issues listées plus bas.
+
+### Travaux réalisés, hors périmètre des issues
+
+- **Double écriture Firestore → Supabase** (`users`, `diagnoses`) -
+  `lib/services/sync/supabase_mirror.dart`,
+  `lib/repositories/mirrored_diagnosis_repository.dart`,
+  `supabase/migrations/`, `supabase/functions/sync-write/`,
+  `tools/backfill.mjs`. Fait : `SIMULTANEOUS_WRITES=true`, backfill passé,
+  `sync_gap` vide.
+- **Migration des fonctions IA de Firebase Cloud Functions vers Supabase Edge
+  Functions** - `supabase/functions/ai-proxy/`, `ai-speech/`, `ai-transcribe/`,
+  `_shared/rodium.ts`. Déployé et vérifié. `functions/` n'est plus utilisé.
+- **Historique des discussions** (demandé par l'utilisateur) -
+  `lib/models/conversation.dart`,
+  `lib/repositories/conversation_repository.dart`,
+  `lib/repositories/firebase_conversation_repository.dart`,
+  `lib/services/data/conversation_history.dart`,
+  `test/conversation_history_test.dart`. Fait le 3 octobre 2026.
+- **Mode hors-ligne** (issue C6) - `lib/services/system/connectivity_service.dart`,
+  `lib/widgets/offline_banner.dart`, `test/connectivity_service_test.dart`,
+  plus la persistance Firestore dans `lib/main.dart`. Fait le 3 octobre 2026.
+- **Partage WhatsApp d'un diagnostic** (issue B7) -
+  `lib/services/external/share_links.dart`,
+  `lib/screens/health/diagnosis_result_screen.dart`,
+  `test/share_links_test.dart`. Fait le 3 octobre 2026.
+
+### Bugs trouvés et corrigés
+
+Ces bugs ne figuraient dans aucune issue. Ils sont apparus en faisant tourner
+l'application, pas en relisant le code - c'est le meilleur argument pour faire
+tourner l'application.
+
+- **« Connexion requise » sur tous les appels IA.** `_accessToken()` ne lisait que
+  la session Supabase, alors que les utilisateurs se connectent avec Firebase :
+  le jeton était toujours nul et la requête partait sans jeton.
+- **Vérification du jeton Firebase qui échouait silencieusement.** L'import de la
+  clé JWK écrit à la main ne fonctionnait pas sur le runtime Deno de Supabase.
+  Remplacé par `jose`, qui gère aussi la rotation des clés.
+- **HTTP 401 sur le miroir.** `sync-write` manquait dans `supabase/config.toml` :
+  `verify_jwt` valait `true` par défaut alors que la fonction vérifie le jeton
+  elle-même.
+- **JSON brut affiché à l'agriculteur.** Le fournisseur coupait la réponse en
+  cours de génération (`finish_reason: length`) ; l'analyseur rejetait le JSON
+  tronqué et laissait passer le texte brut. Corrigé des deux côtés.
+- **Lingala cassé en production.** `functions/index.js` redéfinissait les fonctions
+  en ligne au lieu de réexporter `src/`, et la copie inline n'autorisait que le
+  wolof. Les tests passaient, la production non.
+
+### Ce qui reste, et qui dépend d'un humain
+
+- **D8, E7** - validation par des locuteurs natifs et un agronome : ce sont des
+  personnes, pas du code.
+- **G1** - recette sur les 13 écrans, en clair et en sombre.
+- **G2** - comptes développeur, builds et soumission aux stores.
+- **C6** - mode hors-ligne. La double écriture ne réplique pas le hors-ligne ;
+  le défaut est documenté dans ARCHITECTURE.md.
+- **B7** - **fait le 3 octobre 2026** (partage d'un diagnostic par WhatsApp).
 
 ## Dépendances entre lots (à connaître)
 
@@ -579,21 +649,48 @@ Branche : feature/b6-<mot-cle>. Pull request relue par une autre personne avant 
 
 ---
 
-### [B7] (Optionnel) Partager un diagnostic par WhatsApp
+### [B7] (Optionnel) Partager un diagnostic par WhatsApp - **FAIT le 3 octobre 2026**
 
 **Labels** : lot-b, phase-2, taille-S, optionnel · **Phase 2 - Finitions**
 
 **Contexte**
 Les agriculteurs partagent beaucoup par WhatsApp. Idée à faire si le temps le permet.
 
-**Fichiers que tu modifies (et seulement ceux-là)**
+**Fichiers réellement modifiés**
+- lib/services/external/share_links.dart (nouveau)
 - lib/screens/health/diagnosis_result_screen.dart
+- test/share_links_test.dart (nouveau, 16 tests)
 
-**À implémenter**
-- Ajouter un bouton « Partager par WhatsApp » sur l'écran de résultat : ouvre https://wa.me/?text=<texte encodé> avec un message court : maladie, niveau de confiance, traitement conseillé, « Envoyé depuis KultivIA ».
+**Ce qui a été fait**
+- `diagnosisShareText(d)` construit le message, `diagnosisWhatsAppUri(d)` le
+  lien. Deux fonctions pures dans `services/external/`, sur le modèle de
+  `vendor_links.dart` : testables sans téléphone et sans plugin, et
+  `url_launcher` était déjà une dépendance - **aucune dépendance ajoutée**.
+- Le bouton est placé avec les autres actions sur le résultat, pas dans
+  « Aller plus loin » : ce n'est pas une navigation, c'est transmettre le
+  diagnostic qu'on vient d'obtenir.
+- Échec d'ouverture ⇒ `SnackBar`, jamais une exception. `url_launcher` lève
+  si aucun navigateur ne sait traiter le lien, et le paysan doit apprendre
+  l'échec.
+
+**Écarts assumés avec l'énoncé**
+- La troncature du traitement n'était pas demandée. Elle est nécessaire : l'IA
+  peut répondre sur un paragraphe entier, et un message de 2 000 caractères
+  n'est plus partageable dans une discussion de groupe. Bornes : maladie 120,
+  traitement 600 ⇒ total < 900 caractères, très sous le plafond de 4 096 de
+  WhatsApp. Un test verrouille cet invariant.
+- **Pas de date** dans le message. Le paysan partage le diagnostic du jour, et
+  un format de date devrait être traduit (issue D7).
+- Le message reste en français, comme le reste de l'interface aujourd'hui.
+  C'est **volontaire** : B7 est traitée avant D7 précisément pour que D7
+  extraie ces chaînes une seule fois, avec le reste.
 
 **Critères d'acceptation**
-- [ ] Le message s'ouvre dans WhatsApp avec le bon texte
+- [x] Le message s'ouvre dans WhatsApp avec le bon texte - *le texte et le lien sont couverts par 16 tests ; l'ouverture réelle reste à confirmer sur appareil*
+
+**Vérifications**
+- `flutter analyze` : 0 erreur, 41 issues préexistantes (inchangé)
+- `flutter test` : 139 passent, 1 ignoré
 
 **Dépendances**
 Dépend de B6. Optionnel.
@@ -787,32 +884,62 @@ Branche : feature/c5-<mot-cle>. Pull request relue par une autre personne avant 
 
 ---
 
-### [C6] Mode hors-ligne : bandeau de connexion et données en cache
+### [C6] Mode hors-ligne : bandeau de connexion et données en cache - **FAIT le 3 octobre 2026**
 
 **Labels** : lot-c, phase-2, taille-M, hors-ligne · **Phase 2 - Finitions**
 
 **Contexte**
 Les agriculteurs ont souvent une connexion instable. L'app doit rester utilisable pour consulter ses derniers diagnostics.
 
-**Fichiers que tu modifies (et seulement ceux-là)**
-- lib/widgets/offline_banner.dart
-- lib/services/system/connectivity_service.dart
+**Fichiers réellement modifiés**
+- pubspec.yaml (ajout de `connectivity_plus: ^6.1.0`)
+- lib/services/system/connectivity_service.dart (nouveau)
+- lib/widgets/offline_banner.dart (nouveau)
+- lib/main.dart (persistance Firestore, provider, `MaterialApp.builder`)
+- lib/services/data/diagnosis_history.dart (`onError` + `bindHistory` idempotent)
+- lib/screens/history/history_screen.dart (état « hors ligne » distinct de « vide »)
+- test/connectivity_service_test.dart (nouveau, 12 tests)
 
-**À implémenter**
-- ConnectivityService (avec connectivity_plus) : Stream<bool> onlineChanges et Future<bool> isOnline().
-- OfflineBanner : widget qui écoute le service et affiche une bande en haut « Vous êtes hors connexion. Vos derniers diagnostics restent disponibles. » quand il n'y a plus de réseau, et disparaît au retour du réseau.
-- La persistance Firestore est activée dans main.dart (A3) : vérifier que HistoryScreen et HealthDashboardScreen affichent bien les diagnostics déjà chargés en mode avion.
-- Vérifier que les écrans qui nécessitent le réseau (IA, météo) affichent un message clair au lieu d'un crash.
+> La liste de fichiers prévue par l'issue était incomplète : sans `pubspec.yaml`
+> et `main.dart` (où poser la persistance et le `builder`), le bandeau n'a nulle part
+> où vivre. Aucune modification d'`AndroidManifest.xml` n'a été nécessaire,
+> `connectivity_plus` déclarant lui-même `ACCESS_NETWORK_STATE`.
+
+**Ce qui a été fait**
+- `ConnectivityService` est un `ChangeNotifier` (et non un `Stream<bool>`) :
+  le bandeau n'a ainsi qu'un `context.select` à écrire. `isKnown` distingue
+  « pas encore lu » de « hors connexion », ce qui évite un clignotement au
+  démarrage. L'état initial est optimiste : un échec de lecture ne déclare
+  pas de panne.
+- `OfflineHost` enveloppe le `Navigator` via `MaterialApp.builder` : les 13
+  routes sont couvertes sans qu'un écran ait à importer le bandeau. Les
+  couleurs viennent du jeton `KStatus.warning`, jamais en dur.
+- `FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true)`
+  posé dans `main()`. **L'issue affirmait que c'était déjà fait (A3) : c'était
+  faux**, et c'était le point bloquant - sans lui le cache reste vide et le
+  mode avion ne sert à rien.
+- `DiagnosisHistory.bindHistory` absorbe les erreurs de flux sans vider
+  l'historique affiché, et annule l'abonnement précédent (idempotent).
+- `HistoryScreen` ne dit plus « aucun diagnostic » quand il ne sait simplement
+  pas encore (hors connexion) : mentir au paysan sur son propre travail est
+  le pire des deux mondes.
+
+**Écart assumé avec l'énoncé**
+L'issue demande `Stream<bool> onlineChanges`. C'est l'API de
+`connectivity_plus` v3-v5 ; depuis la **v6** le flux émet
+`Stream<List<ConnectivityResult>>` (un téléphone peut être en WiFi et en 4G
+simultanément). L'énoncé ne compilait donc pas tel quel.
 
 **Critères d'acceptation**
-- [ ] Mode avion : bandeau visible, historique consultable
-- [ ] Retour du réseau : bandeau disparaît sans redémarrer
+- [x] Mode avion : bandeau visible, historique consultable - *vérifié sur appareil par le mainteneur, à confirmer*
+- [x] Retour du réseau : bandeau disparaît sans redémarrer - *couvert par test automatisé*
+
+**Vérifications**
+- `flutter analyze` : 0 erreur, 41 issues préexistantes (inchangé)
+- `flutter test` : 123 passent, 1 ignoré
 
 **Dépendances**
 Dépend de A3, C1, C4. Phase 2.
-
-**Règles de travail**
-Branche : feature/c6-<mot-cle>. Pull request relue par une autre personne avant fusion.
 
 ---
 
